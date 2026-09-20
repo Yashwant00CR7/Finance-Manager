@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup: the DB restores automatically on reinstall, encrypted with
+     the device PIN. Paired with the manual export in Settings so there is always a
+     copy you hold yourself. -->
+<full-backup-content>
+    <include domain="database" path="finance.db" />
+    <include domain="database" path="finance.db-wal" />
+    <include domain="database" path="finance.db-shm" />
+</full-backup-content>

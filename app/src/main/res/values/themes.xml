@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.FinanceManager" parent="android:Theme.DeviceDefault.NoActionBar" />
+</resources>

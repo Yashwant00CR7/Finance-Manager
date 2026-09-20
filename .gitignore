@@ -1,0 +1,23 @@
+# Build output
+build/
+app/build/
+.gradle/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Machine-specific: sdk.dir points at this laptop
+local.properties
+
+# Sideload builds — 16MB each, rebuilt by `gradle :app:assembleDebug`
+*.apk
+*.aab
+
+# Real transaction data. Do not commit.
+export_*.csv
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
