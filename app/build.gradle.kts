@@ -32,6 +32,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // The drawer shows the running version, so BuildConfig has to be generated.
+        buildConfig = true
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"

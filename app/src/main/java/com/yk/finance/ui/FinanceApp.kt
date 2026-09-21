@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -61,12 +64,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yk.finance.FinanceApplication
 import com.yk.finance.domain.formatRupees
+import com.yk.finance.BuildConfig
 import com.yk.finance.ui.theme.LocalMoneyColors
 import kotlinx.coroutines.launch
 
@@ -119,6 +124,7 @@ fun FinanceApp(app: FinanceApplication) {
     var route by remember { mutableStateOf<Route>(Route.Tabs) }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val money = LocalMoneyColors.current
 
     // A chip records with no confirmation step, which is the whole speed argument.
     // The undo is what makes that safe rather than reckless.
@@ -179,47 +185,67 @@ fun FinanceApp(app: FinanceApplication) {
     ModalNavigationDrawer(
         drawerState = drawer,
         drawerContent = {
-            ModalDrawerSheet {
-                Text(
-                    "Finance Manager",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(24.dp),
-                )
+            ModalDrawerSheet(drawerContainerColor = money.header) {
+                // Name over version, the way the reference app titles its drawer. The
+                // inset padding sits inside the sheet so the drawer's own colour still
+                // reaches the top of the screen behind the status bar.
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.statusBars)
+                        .padding(start = 28.dp, end = 24.dp, top = 20.dp, bottom = 16.dp),
+                ) {
+                    Text(
+                        "Finance Manager",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        BuildConfig.VERSION_NAME,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = money.muted,
+                    )
+                }
                 HorizontalDivider()
-                NavigationDrawerItem(
-                    label = { Text("Inbox") },
-                    icon = { Icon(Icons.Default.Inbox, null) },
-                    badge = { if (inbox > 0) Badge { Text("$inbox") } },
-                    selected = false,
-                    onClick = { scope.launch { drawer.close() }; route = Route.Inbox },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-                NavigationDrawerItem(
-                    label = { Text("Import") },
-                    icon = { Icon(Icons.Default.UploadFile, null) },
-                    selected = false,
-                    onClick = { scope.launch { drawer.close() }; route = Route.Import },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-                NavigationDrawerItem(
-                    label = { Text("Backup") },
-                    icon = { Icon(Icons.Default.Backup, null) },
-                    selected = false,
-                    onClick = { scope.launch { drawer.close() }; route = Route.Backup },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-                NavigationDrawerItem(
-                    label = { Text("Settings") },
-                    icon = { Icon(Icons.Default.Settings, null) },
-                    selected = false,
-                    onClick = { scope.launch { drawer.close() }; route = Route.Settings },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
+
+                // Ungrouped and above the sections: the only entry that configures the
+                // app rather than acting on your ledger.
+                DrawerItem(Icons.Default.Settings, "Settings") {
+                    scope.launch { drawer.close() }
+                    route = Route.Settings
+                }
+                HorizontalDivider()
+
+                DrawerSection("Management")
+                DrawerItem(Icons.Default.Inbox, "Inbox", badgeCount = inbox) {
+                    scope.launch { drawer.close() }
+                    route = Route.Inbox
+                }
+                DrawerItem(Icons.Default.UploadFile, "Import") {
+                    scope.launch { drawer.close() }
+                    route = Route.Import
+                }
+                DrawerItem(Icons.Default.Backup, "Backup & restore") {
+                    scope.launch { drawer.close() }
+                    route = Route.Backup
+                }
             }
         },
     ) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbar) },
+            // The header belongs in the topBar slot, not in content. In content the
+            // Scaffold's own inset padding pushed it below the status bar and left
+            // that strip unpainted; here its colour reaches the top edge.
+            topBar = {
+                AppHeader(
+                    vm = vm,
+                    tab = tab,
+                    onMenu = { scope.launch { drawer.open() } },
+                    onSearch = { route = Route.Search },
+                )
+            },
             floatingActionButton = {
                 FloatingActionButton(onClick = { route = Route.Entry(null) }) {
                     Icon(Icons.Default.Add, contentDescription = "Add a record")
@@ -250,12 +276,6 @@ fun FinanceApp(app: FinanceApplication) {
             },
         ) { padding ->
             Column(Modifier.padding(padding)) {
-                AppHeader(
-                    vm = vm,
-                    tab = tab,
-                    onMenu = { scope.launch { drawer.open() } },
-                    onSearch = { route = Route.Search },
-                )
                 when (tab) {
                     Tab.RECORDS -> RecordsScreen(
                         vm = vm,
@@ -306,7 +326,15 @@ private fun AppHeader(
     // may show narrowed figures.
     val filtering = tab == Tab.RECORDS && filter.isActive
 
-    Column(Modifier.fillMaxWidth().background(money.header)) {
+    // Background first, inset padding inside it: the header colour runs under the
+    // status bar and the notch while the controls sit clear of them. Padding the
+    // whole Column instead leaves a bare strip above the header.
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(money.header)
+            .windowInsetsPadding(WindowInsets.statusBars),
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -461,4 +489,36 @@ private fun DrawerPage(title: String, onClose: () -> Unit, content: @Composable 
             item { Spacer(Modifier.height(48.dp)) }
         }
     }
+}
+
+/**
+ * A muted group heading. The reference app splits its drawer into named blocks, which
+ * is what stops a flat list reading as several unrelated things.
+ */
+@Composable
+private fun DrawerSection(label: String) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelLarge,
+        color = LocalMoneyColors.current.muted,
+        modifier = Modifier.padding(start = 28.dp, top = 16.dp, bottom = 4.dp),
+    )
+}
+
+/** One drawer row, so every entry gets the same padding and badge treatment. */
+@Composable
+private fun DrawerItem(
+    icon: ImageVector,
+    label: String,
+    badgeCount: Int = 0,
+    onClick: () -> Unit,
+) {
+    NavigationDrawerItem(
+        label = { Text(label) },
+        icon = { Icon(icon, null) },
+        badge = { if (badgeCount > 0) Badge { Text("$badgeCount") } },
+        selected = false,
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = 12.dp),
+    )
 }
