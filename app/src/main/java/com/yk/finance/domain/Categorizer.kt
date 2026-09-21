@@ -74,6 +74,9 @@ val CATEGORY_RENAMES: Map<String, String> = mapOf(
  * Seeded merchant keywords. Deliberately small: your real payees are mostly UPI
  * strings that no generic list can predict ("paytmqr 1a2b3cd"), so the app is built
  * to learn from one correction rather than to ship a big dictionary.
+ *
+ * Matched as whole words, longest first - see [Categorizer.seedCategoryFor]. Order in
+ * this list carries no meaning, so a rule can be added anywhere it reads well.
  */
 val SEED_KEYWORD_RULES: List<Pair<String, String>> = listOf(
     "SWIGGY" to "Food",
@@ -88,6 +91,11 @@ val SEED_KEYWORD_RULES: List<Pair<String, String>> = listOf(
     "BLINKIT" to "Food",
     "ZEPTO" to "Food",
     "DMART" to "Food",
+    // Both of these contain a keyword belonging to another category ("UBER",
+    // "JIO"). They are here because longest-match-wins, so the specific name
+    // beats the generic word it happens to start with.
+    "UBER EATS" to "Food",
+    "JIOMART" to "Food",
     "UBER" to "Transportation",
     "OLA" to "Transportation",
     "RAPIDO" to "Transportation",
@@ -100,7 +108,7 @@ val SEED_KEYWORD_RULES: List<Pair<String, String>> = listOf(
     "AIRTEL" to "Bills",
     "JIO" to "Bills",
     "ELECTRICITY" to "Bills",
-    "EB " to "Bills",
+    "EB" to "Bills",
     "NETFLIX" to "Entertainment",
     "SPOTIFY" to "Entertainment",
     "BOOKMYSHOW" to "Entertainment",
@@ -140,9 +148,32 @@ object Categorizer {
             .filter { it.id != exceptId && it.categoryId == null && payeeKey(it.payee) == key }
             .map { it.id }
 
+    /**
+     * Each seed keyword as a whole-word matcher, longest first.
+     *
+     * Both halves of this are load-bearing, and the substring version had neither.
+     * Whole words, because `contains` filed a gola stall and a Sholapur mess as
+     * Transportation - "OLA" sits inside both - and JioMart as a phone bill. Longest
+     * first, because "UBER EATS" contains "UBER" and a first-match scan would book
+     * dinner as a taxi.
+     *
+     * Precompiled: this runs on every unrecognised payee, and 32 regexes rebuilt per
+     * message is work done for nothing.
+     */
+    private val SEED_MATCHERS: List<Triple<Regex, String, Int>> =
+        SEED_KEYWORD_RULES
+            .map { (keyword, category) ->
+                Triple(
+                    Regex("""(?<![A-Z0-9])${Regex.escape(keyword)}(?![A-Z0-9])"""),
+                    category,
+                    keyword.length,
+                )
+            }
+            .sortedByDescending { (_, _, length) -> length }
+
     /** Seeded keyword fallback, used only when no learned rule exists for this payee. */
     fun seedCategoryFor(payee: String?): String? {
         val key = payeeKey(payee) ?: return null
-        return SEED_KEYWORD_RULES.firstOrNull { (keyword, _) -> key.contains(keyword) }?.second
+        return SEED_MATCHERS.firstOrNull { (pattern, _, _) -> pattern.containsMatchIn(key) }?.second
     }
 }
