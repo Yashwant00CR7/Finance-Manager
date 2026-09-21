@@ -19,7 +19,13 @@ import com.yk.finance.parser.Channel
 import com.yk.finance.parser.Direction
 
 /** Everything the UI can do to the ledger. */
-class Repository(private val dao: FinanceDao, private val imports: ImportService) {
+class Repository(
+    private val dao: FinanceDao,
+    private val imports: ImportService,
+    /** Null in tests that do not exercise learning. See [CategoryModel]. */
+    private val model: CategoryModel? = null,
+    private val outcomes: GuessOutcomes = GuessOutcomes.None,
+) {
 
     val accounts = dao.observeAccounts()
     val recentTransactions = dao.observeRecent()
@@ -31,6 +37,9 @@ class Repository(private val dao: FinanceDao, private val imports: ImportService
 
     /** History-ranked chips for the quick-add sheet. */
     val quickAdd = dao.observeQuickAdd()
+
+    /** How many rows are currently carrying a guess nobody has looked at. */
+    val guessCount = dao.observeGuessCount()
 
     /** Spending the app declined to guess a category for. */
     val needsCategory = dao.observeNeedsCategory()
@@ -280,6 +289,18 @@ class Repository(private val dao: FinanceDao, private val imports: ImportService
         val categoryId: Long,
         /** Rows the rule filed on your behalf. Not the row you tapped - you meant that one. */
         val backfilledIds: List<Long>,
+        /**
+         * The rows the back-fill filed, held whole rather than as ids.
+         *
+         * Undo clears their categories, so their examples have to come out of the
+         * model with them - and the features are computed from the row, which by undo
+         * time has already been rewritten in the database.
+         *
+         * The row you tapped is deliberately absent. Undo takes back the rule, not
+         * your decision, so that row keeps its category and therefore keeps its place
+         * in the model.
+         */
+        val backfilledRows: List<Txn> = emptyList(),
     )
 
     /**
@@ -295,18 +316,70 @@ class Repository(private val dao: FinanceDao, private val imports: ImportService
      * disagreed about which rows belonged to a payee.
      */
     suspend fun categorise(txn: Txn, categoryId: Long): Learned? {
-        dao.updateTxn(txn.copy(categoryId = categoryId))
-        val key = Categorizer.payeeKey(txn.payee) ?: return null
+        // A guess someone has looked at is no longer a guess, whichever way they
+        // decided - and it is the looking, not the changing, that makes the row safe
+        // to train on.
+        if (txn.categoryWasInferred) {
+            if (txn.categoryId == categoryId) outcomes.confirmed() else outcomes.corrected()
+        }
+        val decided = txn.copy(categoryId = categoryId, categoryWasInferred = false)
+        dao.updateTxn(decided)
+
+        // The model has to end up believing exactly what the ledger says, so a change
+        // of mind is a swap rather than an addition. A row that already carried a
+        // category it did not guess is already an example, and learning the new one
+        // without retiring the old would leave it asserting both.
+        txn.categoryId?.takeIf { !txn.categoryWasInferred }?.let { model?.unlearn(txn, it) }
+
+        // Taught regardless of whether a rule is possible. A Union row has no payee to
+        // key a rule on, so correcting one used to teach nothing at all - and those are
+        // the rows with the most to teach, because they are the ones the app cannot
+        // otherwise guess.
+        model?.learn(decided, categoryId)
+
+        val key = Categorizer.payeeKey(txn.payee)
+            ?: return Learned("", categoryId, emptyList())
         dao.upsertRule(CategoryRule(payeeKey = key, categoryId = categoryId, learned = true))
 
-        val backfilled = Categorizer.backfillTargets(dao.uncategorisedWithPayee(), key, txn.id)
-        if (backfilled.isNotEmpty()) dao.setCategoryForIds(backfilled, categoryId)
-        return Learned(key, categoryId, backfilled)
+        val candidates = dao.uncategorisedWithPayee()
+        val backfilled = Categorizer.backfillTargets(candidates, key, txn.id)
+        if (backfilled.isEmpty()) return Learned(key, categoryId, backfilled)
+
+        dao.setCategoryForIds(backfilled, categoryId)
+        // Back-filled rows had no category, so they were not examples before and need
+        // no retirement - only the new example each of them now is.
+        val filled = candidates.filter { it.id in backfilled.toSet() }
+        filled.forEach { model?.learn(it.copy(categoryId = categoryId), categoryId) }
+        return Learned(key, categoryId, backfilled, backfilledRows = filled)
     }
 
-    /** Takes back a rule and un-files exactly the rows it filed. */
+    /**
+     * Accepts a guess exactly as it stands.
+     *
+     * Not the same as calling [categorise] with the category already there: this is the
+     * one-tap path through a list of guesses, and it deliberately writes no rule. The
+     * model earned this row, so letting it also mint a permanent payee rule would turn
+     * a glance into a commitment.
+     */
+    suspend fun confirmGuess(txn: Txn) {
+        val categoryId = txn.categoryId ?: return
+        if (!txn.categoryWasInferred) return
+        dao.confirmGuess(txn.id)
+        outcomes.confirmed()
+        model?.learn(txn.copy(categoryWasInferred = false), categoryId)
+    }
+
+    /**
+     * Takes back a rule and un-files exactly the rows it filed.
+     *
+     * The model follows the ledger here rather than the rule. Undo clears the
+     * back-filled categories, so those examples go with them; it leaves the row you
+     * tapped alone, so that example stays. Anything else and the model would start
+     * disagreeing with the transactions it claims to be a projection of.
+     */
     suspend fun undoLearned(learned: Learned) {
-        dao.deleteRuleByKey(learned.payeeKey)
+        learned.backfilledRows.forEach { model?.unlearn(it, learned.categoryId) }
+        if (learned.payeeKey.isNotEmpty()) dao.deleteRuleByKey(learned.payeeKey)
         if (learned.backfilledIds.isNotEmpty()) dao.clearCategoryForIds(learned.backfilledIds)
     }
 

@@ -98,7 +98,7 @@ private sealed interface Route {
 @Composable
 fun FinanceApp(app: FinanceApplication) {
     val vm: FinanceViewModel = viewModel(
-        factory = FinanceViewModel.Factory(app.repository, app.budgets),
+        factory = FinanceViewModel.Factory(app.repository, app.budgets, app.model, app.prefs),
     )
     val state by vm.state.collectAsState()
     val inbox by vm.inboxCount.collectAsState()
@@ -147,8 +147,12 @@ fun FinanceApp(app: FinanceApplication) {
         } else {
             " · ${it.backfilledIds.size} filed"
         }
+        // A payee-less row (Union sends none) teaches the model but mints no rule,
+        // so there is no payee to name - and saying nothing at all would be the old
+        // silent behaviour this snackbar exists to end.
+        val what = it.payeeKey.ifEmpty { "This payment" }
         val result = snackbar.showSnackbar(
-            message = "${it.payeeKey} → ${state.categoryName(it.categoryId)}$filed",
+            message = "$what → ${state.categoryName(it.categoryId)}$filed",
             actionLabel = "Undo",
         )
         if (result == SnackbarResult.ActionPerformed) vm.undoLearned() else vm.dismissLearned()

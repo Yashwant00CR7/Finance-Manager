@@ -12,6 +12,7 @@ import com.yk.finance.data.CycleBoundary
 import com.yk.finance.data.CycleState
 import com.yk.finance.data.ImportBatch
 import com.yk.finance.data.PendingReview
+import com.yk.finance.data.Prefs
 import com.yk.finance.data.QuickAddSuggestion
 import com.yk.finance.data.Sharing
 import com.yk.finance.data.Txn
@@ -19,6 +20,7 @@ import com.yk.finance.data.TxnSource
 import com.yk.finance.domain.BudgetEvaluator
 import com.yk.finance.domain.BudgetProgress
 import com.yk.finance.domain.BudgetResolver
+import com.yk.finance.domain.CategoryModel
 import com.yk.finance.domain.CommitResult
 import com.yk.finance.domain.Ledger
 import com.yk.finance.domain.Looks
@@ -64,10 +66,12 @@ data class RecordFilter(
     val categoryId: Long? = null,
     val type: TypeFilter = TypeFilter.ALL,
     val uncategorisedOnly: Boolean = false,
+    /** Rows the model filed and nobody has looked at yet. */
+    val guessedOnly: Boolean = false,
 ) {
     val isActive: Boolean
         get() = accountId != null || categoryId != null ||
-            type != TypeFilter.ALL || uncategorisedOnly
+            type != TypeFilter.ALL || uncategorisedOnly || guessedOnly
 }
 
 /**
@@ -88,7 +92,8 @@ internal fun RecordFilter.apply(rows: List<Txn>): List<Txn> = rows.filter { txn 
     }
     val uncategorisedOk = !uncategorisedOnly ||
         (txn.categoryId == null && Ledger.isExpense(txn))
-    accountOk && categoryOk && typeOk && uncategorisedOk
+    val guessedOk = !guessedOnly || txn.categoryWasInferred
+    accountOk && categoryOk && typeOk && uncategorisedOk && guessedOk
 }
 
 data class UiState(
@@ -156,10 +161,59 @@ data class UiState(
         .sorted()
 }
 
+/** Guesses a person has looked at, split by whether the model had been right. */
+data class GuessStats(val confirmed: Int, val corrected: Int) {
+    val total get() = confirmed + corrected
+    val hasEnoughToReport get() = total >= 5
+}
+
 class FinanceViewModel(
     private val repository: Repository,
     private val evaluator: BudgetEvaluator,
+    private val model: CategoryModel,
+    private val prefs: Prefs,
 ) : ViewModel() {
+
+    /** Rows carrying a guess nobody has confirmed or corrected. */
+    val guessCount: StateFlow<Int> = repository.guessCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    private val _autoFile = MutableStateFlow(prefs.autoFileCategories)
+    val autoFile: StateFlow<Boolean> = _autoFile
+
+    fun setAutoFile(on: Boolean) {
+        prefs.autoFileCategories = on
+        model.autoFileEnabled = on
+        _autoFile.value = on
+    }
+
+    private val _guessStats = MutableStateFlow(GuessStats(prefs.guessesConfirmed, prefs.guessesCorrected))
+    val guessStats: StateFlow<GuessStats> = _guessStats
+
+    private fun refreshGuessStats() {
+        _guessStats.value = GuessStats(prefs.guessesConfirmed, prefs.guessesCorrected)
+    }
+
+    /**
+     * The model's top few categories for a row, to float to the head of a picker.
+     *
+     * Capped deliberately. Reordering an entire list by a model this small would cost
+     * more than it gives - the order of a category list is something you learn, and
+     * shuffling all of it every time would make a category you know is there harder to
+     * find than leaving it alone.
+     */
+    fun suggestedCategoryIds(txn: Txn?): List<Long> {
+        val row = txn ?: return emptyList()
+        val allowed = state.value.expenseCategories.map { it.id }.toSet()
+        if (allowed.isEmpty()) return emptyList()
+        return model.rank(row, allowed).take(SUGGESTIONS).map { it.categoryId }
+    }
+
+    /** Accepts a guess as it stands, without minting a payee rule. See Repository. */
+    fun confirmGuess(txn: Txn) = viewModelScope.launch {
+        repository.confirmGuess(txn)
+        refreshGuessStats()
+    }
 
     // combine() only has typed overloads up to five flows; a sixth would fall back to
     // the vararg form and erase every type to Any?. Nesting keeps this checked.
@@ -581,6 +635,7 @@ class FinanceViewModel(
 
     fun categorise(txn: Txn, categoryId: Long) = viewModelScope.launch {
         _learned.value = repository.categorise(txn, categoryId)
+        refreshGuessStats()
         refreshDerived()
     }
 
@@ -769,9 +824,16 @@ class FinanceViewModel(
     class Factory(
         private val repository: Repository,
         private val evaluator: BudgetEvaluator,
+        private val model: CategoryModel,
+        private val prefs: Prefs,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            FinanceViewModel(repository, evaluator) as T
+            FinanceViewModel(repository, evaluator, model, prefs) as T
+    }
+
+    private companion object {
+        /** How many model suggestions may jump the queue in a picker. */
+        const val SUGGESTIONS = 3
     }
 }

@@ -1,3 +1,5 @@
+import com.android.build.api.artifact.SingleArtifact
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -13,8 +15,8 @@ android {
         applicationId = "com.yk.finance"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "2.2.0"
+        versionCode = 10
+        versionName = "2.3.0"
     }
 
     buildTypes {
@@ -37,6 +39,46 @@ android {
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+}
+
+/**
+ * Fails the build if the merged manifest asks for INTERNET.
+ *
+ * The manifest declares tools:node="remove", which strips the permission however it
+ * got there - but a directive nobody checks is a comment. This reads the manifest the
+ * APK is actually built from, which is the only artifact that can answer the question.
+ */
+abstract class VerifyNoInternetPermission : DefaultTask() {
+
+    @get:InputFile
+    abstract val mergedManifest: RegularFileProperty
+
+    @TaskAction
+    fun verify() {
+        val manifest = mergedManifest.get().asFile
+        if (manifest.readText().contains("android.permission.INTERNET")) {
+            throw GradleException(
+                "INTERNET permission present in ${manifest.path}.\n" +
+                    "This app's privacy claim is that bank data cannot leave the device, and " +
+                    "that claim is only worth anything while it is verifiable. If a dependency " +
+                    "needs the network, that is a decision to take deliberately - not one to " +
+                    "let through a manifest merge.",
+            )
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val verify = tasks.register<VerifyNoInternetPermission>(
+            "verifyNoInternetPermission${variant.name.replaceFirstChar { it.uppercase() }}",
+        ) {
+            group = "verification"
+            description = "Fails if the merged manifest grants INTERNET."
+            mergedManifest.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
+        }
+        tasks.named("check") { dependsOn(verify) }
     }
 }
 

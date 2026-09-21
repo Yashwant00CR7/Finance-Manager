@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -19,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,9 +40,57 @@ fun SettingsSection(vm: FinanceViewModel, state: UiState) {
     val cycles by vm.salaryCycles.collectAsState()
     val money = LocalMoneyColors.current
     val smsGranted = rememberSmsPermissionGranted()
+    val autoFile by vm.autoFile.collectAsState()
+    val guessStats by vm.guessStats.collectAsState()
+    val guessCount by vm.guessCount.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (!smsGranted) MissingSmsPermissionCard()
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Guess categories", fontWeight = FontWeight.Bold)
+                        Text(
+                            "Union sends no payee, so about a quarter of spending has nothing to " +
+                                "match a rule against. When a payment resembles ones you have " +
+                                "already filed, the app files it the same way and marks it as a " +
+                                "guess. Turning this off still puts the likely category first in " +
+                                "the picker - it only stops the app filing anything itself.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = money.muted,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(checked = autoFile, onCheckedChange = vm::setAutoFile)
+                }
+                Spacer(Modifier.height(10.dp))
+                // The honest number, or an honest refusal to quote one. Five is not a
+                // sample; reporting "100% correct" off two guesses would be worse than
+                // saying nothing, because it invites trust the app has not earned.
+                Text(
+                    when {
+                        guessStats.hasEnoughToReport ->
+                            "Right ${guessStats.confirmed} of ${guessStats.total} times you have checked."
+                        guessStats.total > 0 ->
+                            "You have checked ${guessStats.total} so far - too few to quote a figure."
+                        else ->
+                            "No guesses checked yet."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = money.muted,
+                )
+                if (guessCount > 0) {
+                    Text(
+                        "$guessCount waiting to be checked - filter Records by \"Guessed categories " +
+                            "only\" to sweep them.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = money.muted,
+                    )
+                }
+            }
+        }
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {

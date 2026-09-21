@@ -101,6 +101,19 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+/**
+ * Schema 5: the category model's marker.
+ *
+ * One defaulted column. Every existing row comes through as `categoryWasInferred = 0`,
+ * which is true of all of them - nothing in the ledger was guessed before this version
+ * existed, so the default is a fact rather than a convenience.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        SchemaV5.STATEMENTS.forEach(db::execSQL)
+    }
+}
+
 @Database(
     entities = [
         Account::class, Txn::class, Category::class, CategoryRule::class,
@@ -115,7 +128,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): FinanceDao
 
     companion object {
-        const val SCHEMA_VERSION = 4
+        const val SCHEMA_VERSION = 5
         const val DB_NAME = "finance.db"
 
         @Volatile private var instance: AppDatabase? = null
@@ -129,7 +142,7 @@ abstract class AppDatabase : RoomDatabase() {
             return Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
                 // No fallbackToDestructiveMigration. A missing migration must fail loudly;
                 // silently wiping a ledger is the one outcome worse than a crash.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
         }
 

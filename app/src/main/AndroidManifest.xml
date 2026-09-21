@@ -1,9 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Auto-capture of bank alerts. RECEIVE_SMS only: there is no inbox backfill,
          so READ_SMS is deliberately not requested. -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
+    <!--
+        The app has no network access, and this is what keeps it that way.
+
+        Manifest merging pulls in permissions declared by libraries, so a dependency
+        added years from now could give this app INTERNET without anyone deciding to.
+        tools:node="remove" strips it from the merged manifest whatever asks for it,
+        and the verifyNoInternetPermission Gradle task fails the build if it survives.
+
+        This matters more than an ordinary permission choice. "Your bank messages
+        cannot leave this phone" is checkable by anyone with aapt, which is a very
+        different claim from one that has to be taken on trust - and it stops being
+        checkable the moment this line goes missing.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <!-- Budget alerts. Required at runtime from Android 13; without it the
          notifications silently never appear. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

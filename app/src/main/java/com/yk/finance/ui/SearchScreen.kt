@@ -245,6 +245,18 @@ fun FilterSheet(
                 Text("Uncategorised spending only")
             }
 
+            // Reviewing what the model filed is a filter rather than a screen of its
+            // own: it is the same list, narrowed, and the sheet is already where
+            // narrowing lives.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = draft.guessedOnly,
+                    onCheckedChange = { draft = draft.copy(guessedOnly = it) },
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Guessed categories only")
+            }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,

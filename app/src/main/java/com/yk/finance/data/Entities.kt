@@ -127,6 +127,20 @@ data class Txn(
      * a note.
      */
     @ColumnInfo(defaultValue = "0") val noSmsCounterpart: Boolean = false,
+    /**
+     * The category here was guessed by the model, not decided by you and not derived
+     * from a rule.
+     *
+     * Two jobs, and the second is the load-bearing one. On screen it stops a guess
+     * reading as a decision, which is the same contract [timeWasInferred] and
+     * [CycleBoundary.inferred] carry. In training it is the exclusion: a model that
+     * reads its own guesses back as examples reinforces its own mistakes until they
+     * cannot be shifted, so rows flagged here are never learned from.
+     *
+     * Clears the moment a human touches the row - confirming is as much a decision as
+     * correcting - and only then does the row become something to learn from.
+     */
+    @ColumnInfo(defaultValue = "0") val categoryWasInferred: Boolean = false,
 )
 
 @Entity(tableName = "categories")

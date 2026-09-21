@@ -53,6 +53,9 @@ val SEED_CATEGORIES = listOf(
 
 const val UNCATEGORISED = "Uncategorised"
 
+/** A category the app settled on, and whether it worked it out or merely guessed. */
+data class CategoryChoice(val categoryId: Long, val inferred: Boolean)
+
 /**
  * v1 category names and where they go now.
  *
@@ -170,6 +173,34 @@ object Categorizer {
                 )
             }
             .sortedByDescending { (_, _, length) -> length }
+
+    /**
+     * Which of the three tiers wins, given what each of them found.
+     *
+     * Pure, and separate from the lookups, because this ordering is the whole safety
+     * argument for adding a model to a ledger: the model is last, so it can only ever
+     * answer where the app would otherwise have given up, and no transaction that is
+     * categorised correctly today can be categorised differently tomorrow. That is a
+     * claim worth being able to test without a database.
+     *
+     * [prediction] is consulted only when it cleared its own gate. An unconfident
+     * prediction is still useful for ordering a picker; it is not an answer.
+     */
+    fun decide(
+        learnedRuleCategoryId: Long?,
+        seedCategoryId: Long?,
+        prediction: Prediction?,
+    ): CategoryChoice? {
+        // Your own past decision. Always wins, and is never marked as a guess.
+        learnedRuleCategoryId?.let { return CategoryChoice(it, inferred = false) }
+        // Deterministic and auditable: the same payee gives the same answer forever.
+        seedCategoryId?.let { return CategoryChoice(it, inferred = false) }
+        // Resemblance. Marked, reversible, and only when it is sure.
+        if (prediction != null && prediction.confident) {
+            return CategoryChoice(prediction.categoryId, inferred = true)
+        }
+        return null
+    }
 
     /** Seeded keyword fallback, used only when no learned rule exists for this payee. */
     fun seedCategoryFor(payee: String?): String? {

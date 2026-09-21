@@ -355,4 +355,31 @@ interface FinanceDao {
 
     @Query("DELETE FROM transactions WHERE id IN (:ids)")
     suspend fun deleteTxns(ids: List<Long>)
+
+    // ----- v2.3: the category model -----
+
+    /**
+     * The model's entire training set: every categorised row it did not file itself.
+     *
+     * The `categoryWasInferred = 0` half is the defence against the feedback loop, and
+     * it is the reason this is a query rather than "all categorised rows". A model
+     * trained on its own output drifts towards whatever it already believes.
+     *
+     * Rows filed by a seed keyword are deliberately included. A SWIGGY row is correct
+     * by construction, and it still teaches the context features - 8pm, 200-499, UPI -
+     * which are the only features a payee-less Union row has to offer.
+     */
+    @Query("SELECT * FROM transactions WHERE categoryId IS NOT NULL AND categoryWasInferred = 0")
+    suspend fun categorisedNotInferred(): List<Txn>
+
+    /** Drives the "guessed" filter and the count beside it. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE categoryWasInferred = 1")
+    fun observeGuessCount(): Flow<Int>
+
+    /**
+     * Accepts a guess as it stands. The category does not move; what changes is that a
+     * person has now looked at it, which is what makes the row safe to learn from.
+     */
+    @Query("UPDATE transactions SET categoryWasInferred = 0 WHERE id = :id")
+    suspend fun confirmGuess(id: Long)
 }

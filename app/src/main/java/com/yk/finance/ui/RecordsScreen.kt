@@ -190,14 +190,28 @@ private fun RecordRow(
         Spacer(Modifier.width(14.dp))
 
         Column(Modifier.weight(1f)) {
-            Text(
-                when {
-                    isTransfer -> "Transfer"
-                    else -> state.categoryName(txn.categoryId)
-                },
-                style = MaterialTheme.typography.titleMedium,
-                color = if (uncategorised) money.muted else MaterialTheme.colorScheme.onSurface,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    when {
+                        isTransfer -> "Transfer"
+                        else -> state.categoryName(txn.categoryId)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (uncategorised) money.muted else MaterialTheme.colorScheme.onSurface,
+                )
+                // Never dressed up as a decision. A category the model chose reads
+                // differently from one you chose, for the same reason a cycle boundary
+                // says "start estimated" - a guess presented as a fact is the one way
+                // a ledger stops being believed.
+                if (txn.categoryWasInferred) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "guessed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = money.muted,
+                    )
+                }
+            }
             Text(
                 buildString {
                     append(account?.displayName ?: "Unknown account")
@@ -209,15 +223,37 @@ private fun RecordRow(
                 color = money.muted,
             )
             // Categorising from the list is one tap; opening the record to do it would
-            // be four, which is how spending goes unlabelled for a month.
-            if (uncategorised) {
+            // be four, which is how spending goes unlabelled for a month. A guess gets
+            // the same treatment - accepting one has to be cheaper than ignoring it,
+            // or the review queue is where guesses go to be forgotten.
+            if (uncategorised || txn.categoryWasInferred) {
                 Box {
-                    AssistChip(
-                        onClick = { menuOpen = true },
-                        label = { Text("Set category") },
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (txn.categoryWasInferred) {
+                            // Deliberately does not mint a payee rule: the model earned
+                            // this row, and a glance should not become a commitment.
+                            AssistChip(
+                                onClick = { vm.confirmGuess(txn) },
+                                label = { Text("Keep") },
+                            )
+                        }
+                        AssistChip(
+                            onClick = { menuOpen = true },
+                            label = { Text(if (txn.categoryWasInferred) "Change" else "Set category") },
+                        )
+                    }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        state.expenseCategories.forEach { option ->
+                        // The model's best few float to the top; everything below keeps
+                        // the order it always had, because a list that reshuffles
+                        // completely is harder to use than one that never moves.
+                        val suggested = remember(menuOpen, txn.id) {
+                            if (menuOpen) vm.suggestedCategoryIds(txn) else emptyList()
+                        }
+                        val ranked = remember(suggested, state.expenseCategories) {
+                            val order = suggested.withIndex().associate { (at, id) -> id to at }
+                            state.expenseCategories.sortedBy { order[it.id] ?: Int.MAX_VALUE }
+                        }
+                        ranked.forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(option.name) },
                                 leadingIcon = {

@@ -38,6 +38,11 @@ sealed interface IngestOutcome {
 class SmsIngestor(
     private val dao: FinanceDao,
     private val parser: TransactionParser,
+    /**
+     * Null means no guessing at all, which is what every test that does not care about
+     * it gets. The model is the last tier in [resolveCategory] and never the first.
+     */
+    private val model: CategoryModel? = null,
 ) {
 
     suspend fun ingest(sender: String, body: String, receivedAt: Long): IngestOutcome =
@@ -121,21 +126,22 @@ class SmsIngestor(
 
         // --- ordinary transaction -------------------------------------------
         val countsAsSpending = sms.direction == Direction.DEBIT
-        val categoryId = resolveCategory(sms)
+        val choice = resolveCategory(sms, account.id)
         val txnId = insertTxn(
             sms,
             account,
-            categoryId = categoryId,
+            categoryId = choice?.categoryId,
             countsAsSpending = countsAsSpending,
             groupId = null,
             source = TxnSource.SMS,
+            categoryWasInferred = choice?.inferred == true,
         )
         applyBalance(account, sms)
         maybeRollCycle(sms, receivedAt)
         return IngestOutcome.Recorded(
             txnId = txnId,
             accountId = account.id,
-            needsCategory = countsAsSpending && categoryId == null,
+            needsCategory = countsAsSpending && choice == null,
         )
     }
 
@@ -146,6 +152,7 @@ class SmsIngestor(
         countsAsSpending: Boolean,
         groupId: String?,
         source: TxnSource,
+        categoryWasInferred: Boolean = false,
     ): Long {
         return dao.insertTxn(
             Txn(
@@ -161,6 +168,7 @@ class SmsIngestor(
                 transferGroupId = groupId,
                 source = source,
                 rawMessage = sms.raw,
+                categoryWasInferred = categoryWasInferred,
             ),
         )
     }
@@ -168,16 +176,34 @@ class SmsIngestor(
     /**
      * Guess, or return null so the caller can ask.
      *
-     * A learned rule is the user's own past decision and always wins. The seeded
-     * keyword list is the only guessing this does, and it only fires on a payee - so
-     * Union, which sends none, always falls through to the ask.
+     * Three tiers, weakest last. A learned rule is your own past decision and always
+     * wins. A seed keyword is deterministic and auditable, so it wins next. The model
+     * only ever fires where the app would otherwise have given up, which is what makes
+     * turning it on incapable of changing any outcome that works today.
+     *
+     * Note that the payee is no longer a precondition for reaching the bottom of this
+     * function. It used to be - Union sends none, so a quarter of spending returned at
+     * the first line and every Union debit settled into the ask queue. The model is
+     * the first tier with anything to say about a row that has no text in it.
      */
-    private suspend fun resolveCategory(sms: ParsedSms): Long? {
+    private suspend fun resolveCategory(sms: ParsedSms, accountId: Long): CategoryChoice? {
         if (sms.direction != Direction.DEBIT) return null
-        val key = Categorizer.payeeKey(sms.payee) ?: return null
-        dao.ruleFor(key)?.let { return it.categoryId }
-        val seeded = Categorizer.seedCategoryFor(sms.payee) ?: return null
-        return dao.allCategories().firstOrNull { it.name == seeded }?.id
+
+        val rule = Categorizer.payeeKey(sms.payee)?.let { dao.ruleFor(it)?.categoryId }
+        val categories = dao.allCategories()
+        val seed = Categorizer.seedCategoryFor(sms.payee)
+            ?.let { name -> categories.firstOrNull { it.name == name }?.id }
+
+        // Income categories are excluded rather than merely unlikely. The model is
+        // trained on credits too, because salary landing on the first of the month
+        // teaches the context features something true - but "Salary" must never be
+        // offered as an answer for money going out.
+        val prediction = model?.let {
+            val allowed = categories.filterNot { c -> c.isIncome }.map { c -> c.id }.toSet()
+            it.predict(Features.of(sms, accountId), allowed)
+        }
+
+        return Categorizer.decide(rule, seed, prediction)
     }
 
     /**
