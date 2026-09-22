@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -62,6 +63,7 @@ fun InboxScreen(vm: FinanceViewModel, state: UiState, onClose: () -> Unit) {
                 Modifier
                     .fillMaxWidth()
                     .background(LocalMoneyColors.current.header)
+                    .windowInsetsPadding(topBarInset)
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

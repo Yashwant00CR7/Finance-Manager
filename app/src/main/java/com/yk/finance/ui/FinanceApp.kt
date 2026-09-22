@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
@@ -196,7 +194,7 @@ fun FinanceApp(app: FinanceApplication) {
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.statusBars)
+                        .windowInsetsPadding(topBarInset)
                         .padding(start = 28.dp, end = 24.dp, top = 20.dp, bottom = 16.dp),
                 ) {
                     Text(
@@ -337,7 +335,7 @@ private fun AppHeader(
         Modifier
             .fillMaxWidth()
             .background(money.header)
-            .windowInsetsPadding(WindowInsets.statusBars),
+            .windowInsetsPadding(topBarInset),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
@@ -478,6 +476,7 @@ private fun DrawerPage(title: String, onClose: () -> Unit, content: @Composable 
             Modifier
                 .fillMaxWidth()
                 .background(LocalMoneyColors.current.header)
+                .windowInsetsPadding(topBarInset)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
