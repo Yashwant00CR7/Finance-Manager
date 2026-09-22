@@ -43,9 +43,30 @@ fun SettingsSection(vm: FinanceViewModel, state: UiState) {
     val autoFile by vm.autoFile.collectAsState()
     val guessStats by vm.guessStats.collectAsState()
     val guessCount by vm.guessCount.collectAsState()
+    val notifyOnRecord by vm.notifyOnRecord.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (!smsGranted) MissingSmsPermissionCard()
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Announce every payment", fontWeight = FontWeight.Bold)
+                        Text(
+                            "Posts a notification the moment a bank message is filed, saying " +
+                                "what was recorded and where it went. A payment the app cannot " +
+                                "categorise asks you a question instead, so nothing arrives " +
+                                "twice. Transfers between your own accounts stay quiet.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = money.muted,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(checked = notifyOnRecord, onCheckedChange = vm::setNotifyOnRecord)
+                }
+            }
+        }
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {

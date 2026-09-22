@@ -8,6 +8,7 @@ import android.util.Log
 import com.yk.finance.FinanceApplication
 import com.yk.finance.domain.CategoryPrompt
 import com.yk.finance.domain.IngestOutcome
+import com.yk.finance.domain.RecordedAlert
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,7 +41,14 @@ class SmsReceiver : BroadcastReceiver() {
                 when (val outcome = app.ingestor.ingest(sender, body, receivedAt)) {
                     is IngestOutcome.Recorded -> {
                         app.budgets.evaluateAndNotify(context)
-                        if (outcome.needsCategory) promptForCategory(app, context, outcome)
+                        // Either/or, never both: a payment with no category is a
+                        // question and a payment with one is news, and the same
+                        // payment is never two notifications.
+                        if (outcome.needsCategory) {
+                            promptForCategory(app, context, outcome)
+                        } else {
+                            announce(app, context, outcome)
+                        }
                     }
                     is IngestOutcome.Transfer -> Unit // transfers never affect budgets
                     is IngestOutcome.DroppedDuplicate ->
@@ -73,6 +81,28 @@ class SmsReceiver : BroadcastReceiver() {
             amountPaise = txn.amountPaise,
             accountName = app.dao.accountById(outcome.accountId)?.displayName,
             pendingCount = app.dao.needsCategoryCount(),
+        )
+    }
+
+    /**
+     * Says what was recorded, while the payment is still the thing you just did.
+     *
+     * Only the rows the app filed itself reach here. Transfers stay silent on purpose -
+     * an ATM withdrawal and the cash leg the app mints to match it are one movement of
+     * your own money, and announcing them would report spending that never happened.
+     */
+    private suspend fun announce(
+        app: FinanceApplication,
+        context: Context,
+        outcome: IngestOutcome.Recorded,
+    ) {
+        if (!app.prefs.notifyOnRecord) return
+        val txn = app.dao.txnById(outcome.txnId) ?: return
+        RecordedAlert.notify(
+            context = context,
+            txn = txn,
+            categoryName = txn.categoryId?.let { app.dao.categoryById(it)?.name },
+            accountName = app.dao.accountById(outcome.accountId)?.displayName,
         )
     }
 

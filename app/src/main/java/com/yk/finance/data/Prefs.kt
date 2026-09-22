@@ -25,6 +25,17 @@ class Prefs(context: Context) {
         get() = store.getBoolean(KEY_AUTO_FILE, true)
         set(value) = store.edit().putBoolean(KEY_AUTO_FILE, value).apply()
 
+    /**
+     * Whether a filed payment announces itself in the shade.
+     *
+     * On by default - the announcement is the feature. Off exists because the bank's
+     * own SMS already chimed a second earlier, and wanting one alert per payment
+     * rather than two is a reasonable thing to want.
+     */
+    var notifyOnRecord: Boolean
+        get() = store.getBoolean(KEY_NOTIFY_ON_RECORD, true)
+        set(value) = store.edit().putBoolean(KEY_NOTIFY_ON_RECORD, value).apply()
+
     /** Guesses a person looked at and accepted. */
     val guessesConfirmed: Int get() = store.getInt(KEY_CONFIRMED, 0)
 
@@ -41,6 +52,7 @@ class Prefs(context: Context) {
 
     private companion object {
         const val KEY_AUTO_FILE = "auto_file_categories"
+        const val KEY_NOTIFY_ON_RECORD = "notify_on_record"
         const val KEY_CONFIRMED = "guesses_confirmed"
         const val KEY_CORRECTED = "guesses_corrected"
     }

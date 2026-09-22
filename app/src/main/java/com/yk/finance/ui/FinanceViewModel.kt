@@ -187,6 +187,16 @@ class FinanceViewModel(
         _autoFile.value = on
     }
 
+    private val _notifyOnRecord = MutableStateFlow(prefs.notifyOnRecord)
+    val notifyOnRecord: StateFlow<Boolean> = _notifyOnRecord
+
+    // No model or ledger state to keep in step - SmsReceiver reads the pref directly at
+    // the moment it would post, so flipping this takes effect on the very next message.
+    fun setNotifyOnRecord(on: Boolean) {
+        prefs.notifyOnRecord = on
+        _notifyOnRecord.value = on
+    }
+
     private val _guessStats = MutableStateFlow(GuessStats(prefs.guessesConfirmed, prefs.guessesCorrected))
     val guessStats: StateFlow<GuessStats> = _guessStats
 
