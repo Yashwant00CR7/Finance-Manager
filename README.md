@@ -1,247 +1,369 @@
-# Finance Manager (v1.4)
+<div align="center">
 
-Personal Android app that reads bank SMS as they arrive, keeps per-account balances,
-and enforces budgets on a salary cycle. Sideloaded, offline, no server, no account.
+# Finance Manager
 
-## Install
+**Your bank already texts you every time money moves.
+This app just listens.**
 
-    adb install -r FinanceManager-v1.4-debug.apk
+[![version](https://img.shields.io/badge/version-2.4.0-5E35B1)](#)
+[![platform](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](#)
+[![kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](#)
+[![compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)](#)
+[![tests](https://img.shields.io/badge/tests-343%20passing-43A047)](#verification)
+[![network](https://img.shields.io/badge/network-none,%20build--enforced-E53935)](#no-network-and-the-build-proves-it)
 
-Or copy the APK to the phone and open it (allow "install unknown apps" once).
+<img src="docs/screenshots/records.jpg" width="31%" alt="Records — the ledger grouped by day" />
+<img src="docs/screenshots/accounts.jpg" width="31%" alt="Accounts — balances and the Overall card" />
+<img src="docs/screenshots/categories.jpg" width="31%" alt="Categories — where the month went" />
 
-On first launch, grant **SMS** and **Notifications**. SMS is the whole product;
-notifications only gate the budget alerts, which on Android 13+ fail silently without it.
+</div>
 
-If the SMS toggle is greyed out, Android is blocking it because the app was installed
-outside the Play Store. App info -> the three dots at the top right -> **Allow
-restricted settings**, and only then open Permissions. The app now says so itself: a
-banner appears on Home whenever SMS access is missing, rather than showing a balance
-of zero with no explanation.
+---
 
-Then: **Settings → Add account** for each account, with its current balance, plus a
-Cash entry. No digits or bank codes — the app attaches messages itself.
+## The idea
 
-## What it does
+Every Indian bank sends an SMS the instant money leaves or enters your account. That
+message contains the amount, the date, the payee, a reference number, and often the
+balance. It is a complete, real-time, authoritative transaction feed, and it is already
+sitting on your phone.
 
-- Records debits and credits from ICICI and Union Bank SMS the moment they arrive
-- Auto-creates an account for any unrecognised sender and records the transaction
-  immediately; you name it or attach it afterwards
-- ATM withdrawals move money to the Cash wallet instead of counting as spending;
-  your manual cash entries are the real expense
-- Transfers between your own accounts net to zero spending
-- Learns a payee's category from one correction
-- **Guesses a category when it can, asks when it cannot.** Union sends no payee, so
-  there is nothing to guess from; those land in "Needs a category" on Home with
-  one-tap chips, and a quiet notification while you still remember the payment
-- **Quick-add sheet** behind the + button: chips for what you enter most often, one
-  tap each, undoable. Categories are ordered by how often you use them
-- **Checks another app's export against itself**, reports what each side has that the
-  other does not, and — only when you press the button — **imports it**, mergeably and
-  undoably
-- Budgets per category plus an overall cap, on your salary cycle
-- **Backup and restore** the whole database, and export transactions as CSV
+Most finance apps ignore it. They ask you to type each payment in by hand, or they ask
+for your net-banking credentials so a server somewhere can fetch statements on your
+behalf. The first is a habit almost nobody keeps for more than three weeks. The second
+means handing your bank login to a third party.
 
-## Verification status
+This app reads the messages you were already getting. No account, no server, no login,
+no network permission at all. Payments appear in the ledger because the bank announced
+them, not because you remembered to write them down.
 
-114 unit tests, all passing (`gradle :app:testDebugUnitTest`). Every ICICI and Union
-assertion runs against real messages from the phone, and the importer is tested
-against the real 226-row export rather than against a file written to suit it.
+<div align="center">
+<img src="docs/screenshots/sms-locked.jpg" width="46%" alt="An entry screen showing the original ICICI SMS underneath, with the amount locked" />
+</div>
 
-    ParserTest 14 · DiffTest 13 · CsvExportTest 12 · ImportPipelineTest 8
-    MoneyParserTest 8 · CategoryVocabularyTest 7 · CycleCalculatorTest 7
-    DialectTest 7 · TimeParserTest 7 · ColumnMapTest 6 · TransferResolverTest 6
-    DirectionParserTest 5 · QuickAddTest 5 · RealExportTest 5 · MatchWindowTest 3
-    MigrationVersionTest 1
+When you open a payment the app captured, the bank's own message is still there
+underneath it — and the amount is **locked**. You can change the category, the note and
+the date freely, because those are the app's guesses. The amount and the direction are
+the bank's facts, and overriding one takes a deliberate second tap.
 
-`RealExportTest` fails rather than skips when the fixture is missing. A test that
+---
+
+## The rule everything else follows
+
+> **A personal finance app that is quietly wrong once is a personal finance app you
+> stop believing.**
+
+Almost every decision in this codebase falls out of that. The app is allowed to not
+know things. It is not allowed to make something up and present it as fact.
+
+In practice that means:
+
+- **It asks rather than guesses.** A payment it cannot categorise goes into a queue as
+  a question, not into `Uncategorised` where you would never look at it again.
+- **Every guess is marked as a guess** — in the ledger, in the pickers, and in the
+  notification. Guessed rows can be filtered and reviewed as a group.
+- **Corrections are visible rows.** Reconciling a drifted balance writes an
+  `ADJUSTMENT` transaction you can look at, rather than silently editing the number.
+- **Nothing rounds behind your back.** Money is `Long` paise end to end; `Double` never
+  touches it.
+- **A failure is louder than a silent loss.** There is deliberately no
+  `fallbackToDestructiveMigration` — a missing migration crashes the app, because
+  wiping a ledger is worse than a crash.
+
+---
+
+## How a bank message becomes a ledger row
+
+```mermaid
+flowchart TD
+    A["SMS arrives"] --> B{"Does a bank rule<br/>claim the sender?"}
+    B -->|no| Z["Dropped silently"]
+    B -->|yes| C{"Is the body shaped like a<br/>COMPLETED transaction?"}
+    C -->|"no — but it mentions<br/>money and a bank"| R["Review tray<br/>(a question, never a loss)"]
+    C -->|no| Z
+    C -->|yes| D{"Shares a reference with<br/>something already filed?"}
+    D -->|"same account,<br/>same direction"| E["Duplicate — dropped"]
+    D -->|"other account,<br/>opposite direction"| F["Self-transfer — both legs<br/>excluded from spending"]
+    D -->|"no match"| G{"'ATM' or 'WDL'<br/>in the body?"}
+    G -->|yes| H["Moved to the Cash wallet.<br/>Not spending — yet"]
+    G -->|no| I["Ordinary transaction"]
+    I --> J{"Categorise"}
+    J -->|"a rule you taught it"| K["Filed"]
+    J -->|"a seeded keyword"| K
+    J -->|"the model, if confident"| L["Filed, marked as a guess"]
+    J -->|"nothing fits"| M["Asked, in the Inbox"]
+```
+
+---
+
+## Design decisions
+
+### Structure, not keywords, decides what is a transaction
+
+A message becomes a transaction only by matching a bank format **structurally** — an
+allowlist, not a blocklist. Fraud warnings, promos, mandates and OTPs are rejected
+without a single banned word, because none of them are *shaped* like a completed
+payment.
+
+This matters more than it sounds. Real Union Bank debits end with
+`Never Share OTP/PIN/CVV`, so blocklisting "OTP" would reject every genuine Union
+transaction the app ever sees.
+
+The direction is bound to the account token, never to a keyword:
+
+```
+"Acct XX742 debited for Rs 169.00 on 11-Sep-26; SRI LAKSHMI TRA credited."
+```
+
+Every ICICI *debit* contains the word "credited" — the **payee** is credited. Keying on
+keywords would file every rupee you spend as income.
+
+### The same amount and the same reference can mean three different things
+
+```
+ICICI  Acct XX742 debited  Rs 3000.00  16-Sep-26  A K SHARMA
+Union  A/c *8317 Credited  Rs 3000.00  16-09-2026  Mob Bk        ← same ref no
+```
+
+A naive "same reference means duplicate" rule deletes one of these. The Union balance
+never rises while the ICICI balance falls, and ₹3,000 moved between your own accounts
+books as spending. The discriminator is direction *and* account:
+
+| | Same direction | Opposite direction |
+|---|---|---|
+| **Same account** | Duplicate — the bank alerted twice | — |
+| **Other account** | — | Two legs of one transfer |
+
+ATM withdrawals get the same treatment for the same reason: cash out of a machine is
+money changing pocket, not money spent. The debit is paired with a credit into a Cash
+wallet, and neither counts as spending. What you actually spent is the cash entries you
+log afterwards.
+
+### Three tiers of categorisation, weakest last
+
+| Tier | What it is | Wins because | Marked as a guess? |
+|---|---|---|---|
+| **1. Learned rule** | A correction you made once | It is your own past decision | No |
+| **2. Seed keyword** | `SWIGGY → Food`, whole-word, longest-first | Deterministic and auditable — same payee, same answer, forever | No |
+| **3. Naive Bayes** | Resemblance to what you have already filed | Only fires where the app would otherwise give up | **Yes** |
+
+The ordering is the whole safety argument for putting a classifier anywhere near a
+ledger: **the model sits last, so turning it on cannot change any outcome that is
+already correct.** It only ever answers where the alternative was a shrug.
+
+A few things about the model that were deliberate:
+
+- **Bernoulli, not multinomial.** The multinomial form divides by how many features an
+  example carried, so categories whose payees have short names score higher on
+  *everything* — including rows with no payee at all. That would decide Union
+  transactions on the length of other people's shop names.
+- **It reads amount, hour, weekday, account and channel — not just text.** Union sends
+  no payee at all, which is roughly a quarter of spending. ₹120 at half one on a
+  Tuesday is not nothing.
+- **It never trains on its own guesses.** A model that reads its own output back
+  reinforces its own mistakes until they cannot be shifted.
+- **Nothing is persisted.** It is rebuilt from the ledger at launch, so a bug in the
+  incremental path is wrong until the next start, and a restored backup is correct for
+  free.
+- **It refuses to file unless it is well ahead of the runner-up.** Naive Bayes reports
+  badly calibrated probabilities — it will happily say 0.99 about very little — so the
+  gate reads the *gap* between the top two, not the number on the top one.
+
+And because every guess is marked, the app knows how often it was right without ever
+asking you: the moment you touch a guessed row, it learns whether it had been correct.
+
+### One debit is often several facts
+
+<div align="center">
+<img src="docs/screenshots/split.jpg" width="46%" alt="The split sheet dividing a ₹31.50 bill, with a calculator keypad above" />
+</div>
+
+`Rs 320.00 debited ... KA 05 JUICE BAR` can be two things at once: ₹200 you ate, and
+₹120 you fronted for a friend. Forcing one category on the whole ₹320 overstates Food
+by 120 every time, or understates it by 200 — and hand-compensating for that month
+after month is what makes the same shop flip categories.
+
+Split parts are ordinary transactions sharing a `splitGroupId`, so the ledger, the
+donut, budgets, search and the CSV export needed **no changes at all** to understand
+them. Two categories behave specially:
+
+- **For Others** — ordinary spending that happened to be for someone else. Counts
+  everywhere Food does.
+- **For Friend Return Later** — money you are *holding*, not spending. Written with
+  `countsAsSpending = false`, so it leaves your expense figure and your budgets without
+  either needing to learn a new concept.
+
+The keypad above it is a calculator, and every key runs through `BigDecimal`: `700/3`
+books 233.33 and *says* it rounded, rather than quietly inventing a fraction of a paisa.
+
+### One bank tells you the balance. The other doesn't.
+
+Union sends `Avl Bal` with every message — the bank's own truth, which always wins.
+That account is self-healing: one missed SMS and the next one puts it right.
+
+ICICI sends nothing. Its balance can only be computed by arithmetic, so it drifts with
+every message the phone never received. The app doesn't pretend otherwise — the
+Accounts screen labels those balances *Estimated · reconcile to correct*, and the
+correction you type becomes a visible `ADJUSTMENT` row rather than a silent edit.
+
+### An import you can rehearse
+
+Importing years of history out of another app happens **once** and cannot be practised
+afterwards — so it has to be practisable *before*, on the real file, with no way to do
+harm. Everything above the import button writes nothing, so a file can be checked as
+often as you like.
+
+The report leads with a conservation figure — `226 rows = 226 understood + 0 rejected`
+— because if those ever fail to add up, the file was read wrongly and nothing else in
+the report is reliable. Before it will write anything the importer **refuses** rather
+than warns: row counts must add up, and every account name in the file must be bound to
+an account here. Merging never overwrites — the file may only fill fields the bank never
+supplied. Every row lands in exactly one of `IMPORTED / MERGED / QUEUED / SKIPPED /
+REJECTED`, and all of them are counted.
+
+→ Full mechanics in **[docs/DESIGN-NOTES.md](docs/DESIGN-NOTES.md)**.
+
+### No network, and the build proves it
+
+The app holds two permissions: `RECEIVE_SMS` and `POST_NOTIFICATIONS`. It does **not**
+hold `INTERNET`, and that is enforced rather than promised:
+
+```kotlin
+// app/build.gradle.kts — fails the build if the merged manifest grants INTERNET
+if (manifest.readText().contains("android.permission.INTERNET")) {
+    throw GradleException(
+        "This app's privacy claim is that bank data cannot leave the device, and " +
+        "that claim is only worth anything while it is verifiable."
+    )
+}
+```
+
+Manifest merging pulls in permissions declared by libraries, so a dependency added two
+years from now could hand this app network access without anyone deciding to.
+`tools:node="remove"` strips it whatever asks for it, and the Gradle task reads the
+manifest the APK is *actually built from* — because a directive nobody checks is just a
+comment.
+
+"Your bank messages cannot leave this phone" is checkable by anyone with `aapt`. That is
+a very different claim from one you have to take on trust.
+
+Note also that it asks for `RECEIVE_SMS` only, **not** `READ_SMS`: there is no inbox
+backfill, so the app can see messages that arrive from now on and has no access to the
+ones already on your phone.
+
+---
+
+## Getting around
+
+<div align="center">
+<img src="docs/screenshots/drawer.jpg" width="40%" alt="The navigation drawer" />
+</div>
+
+Five tabs for the ledger, and a drawer for everything you do occasionally:
+
+| Tab | |
+|---|---|
+| **Records** | The ledger, grouped by day. Rows lead with the category; the subtitle carries the account *and* the payee, because the payee is the only thing distinguishing two ₹320 Food rows. |
+| **Analysis** | Where the period's money went, as a ring and a ranked list. Drawn with `Canvas` rather than a charting library — one arc per slice is a dozen lines, and the colours have to match the category discs exactly. |
+| **Budgets** | Limits on the salary cycle, not the calendar month. Every card says which cycle it means, because a limit that is standing and one pinned to this cycle look identical otherwise. |
+| **Accounts** | Balances, and the Overall card. Expense and income stay *pure* — opening balances and corrections are reported separately instead of being folded into income, which would inflate every income figure with money that was never earned. |
+| **Categories** | The vocabulary, and what each one cost this period. |
+
+**Inbox** is the drawer item that matters most: everything the app could not decide on
+its own, in one queue — a new account seen in a message, a balance to confirm, payments
+needing a category, and messages the parser could not read. Each item is a question with
+an answer, and once answered it leaves.
+
+---
+
+## Architecture
+
+```
+parser/    Bank formats as structural rules. Pure Kotlin.
+             BankRules.kt      ICICI + Union. Start here to add a bank.
+             Detectors.kt      Channel detection, future/promo rejection.
+
+domain/    All the logic, and no Android imports, so it runs on the JVM.
+             SmsIngestor.kt    parse → classify → persist → balances
+             TransferResolver  Duplicate vs self-transfer vs ATM
+             Ledger.kt         The one definition of "expense" every screen reads
+             Categorizer.kt    The three tiers, and which one wins
+             CategoryModel.kt  Naive Bayes, and the gate it has to clear
+             Splitter.kt       One debit → several facts. Pure; no balance touched.
+             Calculator.kt     BigDecimal keypad arithmetic
+             CycleCalculator   Salary anchor + last-working-day fallback
+
+importer/  Seven stages, the first six of which write nothing.
+             Dialect → ColumnMap → ValueParsers → CsvImporter
+             DiffMatcher (the capture figure) → Committer (pure) → ImportService
+
+data/      Room. Schema v5, migrations, pre-migration snapshots.
+backup/    Database backup, validated restore, CSV export.
+ui/        Compose + Material 3.
+```
+
+The split that does the work is **`domain/` has no Android in it**. Transfer
+resolution, the classifier, split arithmetic, ledger totals, cycle maths and the whole
+importer are plain Kotlin — which is why the full suite of 343 tests executes in a
+quarter of a second, with no emulator anywhere.
+
+Two things are deliberately *pure* even though it would have been easier not to:
+`Splitter.plan()` decides what a split would write without writing it, and the
+importer's `Committer` decides what a commit would do without doing it. The arithmetic
+that must never be wrong is the part worth testing, and it is testable without a
+database in the way.
+
+---
+
+## Verification
+
+**343 tests across 43 classes. 0 failures, 0 skipped.**
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+export ANDROID_HOME=$HOME/Library/Android/sdk
+gradle :app:testDebugUnitTest
+```
+
+Every ICICI and Union assertion runs against **real messages from the phone**, and the
+importer is tested against the real 226-row export rather than a file written to suit
+it. `RealExportTest` fails rather than skips when that fixture is missing — a test that
 passes by not running reports success for work it never did.
 
-The category vocabulary is data rather than code, so `CategoryVocabularyTest` is the
-only thing standing between a typo and a rename that silently creates a duplicate
-category - it checks that every rename target exists and that no name is both renamed
-away and seeded back, which would rename-then-recreate on every launch forever.
+Honest about what is *not* proven: the ICICI ATM message *layout* is a guess, since no
+real withdrawal has arrived yet. Channel detection keys on `ATM`/`WDL` appearing
+anywhere in the body, which is far more stable than any sentence layout — and if the
+first real withdrawal doesn't match, it lands in the review tray rather than being lost.
+Card/POS formats have no rules written at all.
 
-The v1 -> v2 migration is checked by `python3 tools/verify-migration.py`, which diffs
-the hand-written SQL against the `createSql` Room recorded in `app/schemas/2.json`.
-Room's own MigrationTestHelper cannot be used here: v1 shipped without an exported
-schema, so there is no 1.json to build a "before" database from. The script verifies
-the schema the migration produces, not its execution against a populated v1 file -
-which is what the automatic pre-migration snapshot is for.
+→ Full status, known limits, schema and migration notes in
+**[docs/DESIGN-NOTES.md](docs/DESIGN-NOTES.md)**.
 
-**Verified against real messages:** ICICI debit/credit, Union debit/credit, the
-ICICI→Union self-transfer, balance trailers, amount and date parsing, and rejection
-of fraud warnings, mandates, promos and OTPs.
-
-**Not verified — no real sample exists:**
-
-- **ATM withdrawal format.** The layout is a guess (`Acct XX742 is debited with ...`).
-  Channel detection keys on "ATM"/"WDL"/"CASH WDL" anywhere in the body, which is far
-  more stable than the layout, so the guess is low-risk. If your first real withdrawal
-  does not match, it lands in the review tray rather than being lost, and the fix is
-  one line in `IciciRule.DEBIT_WITH_SYNTHETIC`.
-- **Card/POS and credit-card formats.** No rules written.
-- **Salary credit.** Tag your first salary in the ledger ("This is my salary") to
-  teach the cycle anchor. Until then the cycle rolls on the computed last working day.
-- **The app has never seen a real incoming SMS** — tested by direct invocation, not on
-  a device.
-
-## Checking an export (Settings → Check or import an export)
-
-Pick a CSV exported from another finance app. The importer runs for real - dialect
-sniffing, column mapping, value parsing, transfer expansion, the adaptive matcher, and
-the commit planner - and then reports. **Everything above the import button writes
-nothing**, so a file can be checked as often as you like.
-
-The point is rehearsal. The real import happens once and cannot be practised
-afterwards, so it has to be practicable before, on real files, with no way to do harm.
-
-What the report tells you:
-
-- **Conservation** - `226 rows = 226 understood + 0 rejected`. If those ever fail to
-  add up, the file was read wrongly and nothing else in the report is reliable.
-- **How the columns were read**, including the ones kept but not used.
-- **Accounts in the file**, with a dropdown to bind each name to an account here. The
-  binding is saved as an alias on the account, so it holds for every future run.
-- **The capture figure** - of the bank payments the other app recorded in the window,
-  how many this app saw for itself - and the two lists behind it: missed by this app,
-  and only in this app.
-
-Four things that figure deliberately does *not* do:
-
-- It never counts cash. The app cannot see cash, so a missing cash row proves nothing.
-- It never measures days before the app was installed; the window opens at the later
-  of the cycle start and the first transaction ever recorded.
-- It refuses to call itself a measurement while any account name is unbound, because
-  rows were being skipped.
-- It never merges two candidates on a guess. Ambiguous rows are listed as ambiguous.
-
-## Importing (the button at the bottom of that screen)
-
-Two taps, and the second names what it is about to do. Before it will write anything it
-checks two things and **refuses** rather than warning: that the row counts add up, and
-that every account name in the file is bound. An unbound name means rows would be left
-out without saying so.
-
-Each row lands in exactly one outcome, and all of them are counted:
-
-    IMPORTED   written as a new transaction (a transfer becomes two legs)
-    MERGED     this app already had it from SMS; the file's note and category are
-               copied onto the existing row - into empty fields only
-    QUEUED     ambiguous, or an account is unbound. Nothing written, reason kept
-    SKIPPED    already imported by an earlier run, matched on fingerprint
-    REJECTED   stages 1-4 could not understand it. Kept verbatim with its reason
-
-**Merging never overwrites.** The bank's SMS already supplied the amount, date and
-payee; the file adds only what the bank never said. Whatever you typed stays, and the
-file's version is kept in `imported_rows.rawJson` regardless.
-
-**Re-importing is safe.** Fingerprints are built from the date rather than the
-timestamp, because a second export shifts minutes but never days. Repeated rows within
-one file are numbered, so two separate ₹50 teas on the same day are two fingerprints,
-not one - collapsing them would silently delete a real payment.
-
-**Then set the real balances.** The imported history will not reach today's balance on
-its own; the file covers a period, not all of history. Typing what each account actually
-holds books the difference as a visible `ADJUSTMENT` row rather than correcting the
-number behind your back.
-
-**Undo** removes every transaction the import wrote, reverses the balances, and clears
-the notes and categories it filled in. Merged rows are deliberately not tagged with the
-batch id - undo must never delete a transaction the phone captured for itself. One
-caveat: undoing a merge clears those fields whether or not you have since edited them.
-
-## Backup, export, restore
-
-**Settings -> Backup.** Three buttons, two different files:
-
-- **Save a backup** - the entire SQLite database. This is the one that restores. The
-  write-ahead log is checkpointed first, so the copy is never missing the most recent
-  transactions.
-- **Export CSV** - readable, opens in any spreadsheet. It carries transactions only:
-  balances, budgets and cycle state are not representable, so it is a report, not a
-  backup. The column set deliberately matches what the v1.2 importer will read.
-- **Restore** - validated into a staging file before anything is replaced, so a wrong
-  or truncated file cannot destroy a working ledger. Replaces everything and restarts.
-
-**Automatic snapshots.** The app copies its own database aside immediately before it
-upgrades the schema, and lists those snapshots under the same screen. Five are kept.
-An import can be undone; a bad migration cannot, so it is guarded instead.
-
-## Categories
-
-The vocabulary is My Money Pro's, verbatim, so the import maps one-to-one and years of
-habit carry over. `Groceries` is deliberately absent - fruit and eggs were always filed
-under Food. Income categories (Salary, From Parents, Awards, Refunds) are flagged and
-never offered as somewhere money went.
-
-The v1 names are renamed in place on first launch of v1.2 - `Food & Drink` -> `Food`,
-`Transport` -> `Transportation`, `Groceries` merged into `Food` - so every transaction
-already filed keeps its category without being touched. This is `CategorySync`, not a
-Room migration, because it has to converge on every launch rather than fire once.
-
-## Known limits by design
-
-- ICICI sends no balance, so its figure is computed and drifts. Reconcile once a cycle.
-- The importer can write now, but **the decision to use it is still gated** on the
-  capture figure holding up over a full salary cycle. Today's figure spans only the days
-  between install and the 18 Sep export. Re-export near 29 Oct and check that; see
-  `PLAN-v1.1-import.md`.
-- Union messages carry no payee, so those transactions cannot be auto-categorised.
-  They are asked about rather than guessed at; after the import supplies training data
-  the guessing gets better, but a payee-free message can never be fully automatic.
-- Quick-add chips are thin until the import lands - they are built from what you have
-  actually entered, and there are only a handful of hand-entered rows so far.
-- No app lock. No charts. No home-screen widget. No LLM parser fallback.
+---
 
 ## Build
 
-    export JAVA_HOME=/opt/homebrew/opt/openjdk@21
-    export ANDROID_HOME=$HOME/Library/Android/sdk
-    gradle :app:assembleDebug
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+export ANDROID_HOME=$HOME/Library/Android/sdk
+gradle :app:assembleDebug
+```
 
-`gradle.properties` forces in-process Kotlin compilation — the separate Kotlin compile
-daemon cannot open its socket in some sandboxes.
+Then `adb install -r app/build/outputs/apk/debug/app-debug.apk`, or copy the APK across
+and open it.
 
-## Where things live
+On first launch, grant **SMS** and **Notifications**, then add each account with its
+current balance under Settings. No digits or bank codes — the app attaches messages to
+accounts itself, and auto-creates one for any sender it doesn't recognise.
 
-    parser/BankRules.kt      ICICI + Union formats. Start here to add a bank.
-    parser/Detectors.kt      Channel detection and the future/promo rejection list.
-    domain/TransferResolver.kt   Duplicate vs self-transfer vs ATM.
-    domain/CycleCalculator.kt    Salary anchor + last-working-day fallback.
-    domain/SmsIngestor.kt    Orchestration: parse -> classify -> persist -> balances.
-    data/AppDatabase.kt      Schema version, migrations, pre-migration snapshot.
-    backup/Snapshot.kt       Database backup and validated restore.
-    backup/CsvExport.kt      Readable export. No Android types, so it is unit-tested.
-    ui/Permissions.kt        The missing-SMS-permission banner.
-    domain/Categorizer.kt    Category vocabulary, renames, seeded keyword rules.
-    domain/CategorySync.kt   Reconciles the category table on every launch.
-    domain/CategoryPrompt.kt The "ask" notification when no category can be guessed.
-    ui/QuickAdd.kt           Quick-add sheet and the needs-a-category cards.
-    importer/Dialect.kt      Stage 1. Hand-written CSV reader; see the trailing-space note.
-    importer/ColumnMap.kt    Stage 2. Column synonyms. Add a synonym here, not a branch.
-    importer/ValueParsers.kt Stage 4. Money, dates, direction. Heavily tested.
-    importer/CsvImporter.kt  Stages 1-5. No Android, no Room, no writes.
-    importer/DiffMatcher.kt  The adaptive matcher and the capture figure.
-    importer/Committer.kt    Stage 6. Pure: decides what a commit would do. No Room.
-    domain/ImportService.kt  Stage 7. The only code that writes an import. One transaction.
-    ui/ImportScreen.kt       The rehearsal, the import button, the undo.
+> If the SMS toggle is greyed out, Android is blocking it because the app was installed
+> outside the Play Store. App info → ⋮ → **Allow restricted settings**, then open
+> Permissions.
 
-## Schema
+**Stack:** Kotlin 2.0.21 · Jetpack Compose (BOM 2024.10.01) · Material 3 · Room 2.6.1
+via KSP · minSdk 26 · targetSdk 35. No other runtime dependencies.
 
-Version 2, and **unchanged by v1.2, v1.3 and v1.4**. `MIGRATION_1_2` created everything
-the importer would eventually need - the `import_batches` and `imported_rows` tables,
-plus `fingerprint`, `importBatchId`, `timeWasInferred` and `noSmsCounterpart` on
-transactions - including the columns no feature used at the time.
+---
 
-That was the whole point: import day involves no schema change at all. Running a second
-migration against a full ledger on the same day you irreversibly rewrite it is exactly
-the risk this avoids. Upgrading from any earlier version therefore runs no migration.
-
-There is deliberately no `fallbackToDestructiveMigration`: a missing migration must
-fail loudly, because silently wiping a ledger is worse than a crash. Room compares an
-entity's declared `@ColumnInfo(defaultValue = ...)` against the live database, so any
-column added as `NOT NULL DEFAULT 0` must declare that default on the entity too.
-
-v1 shipped with `exportSchema = false`, so no v1 schema JSON exists and this migration
-was verified by hand and by Room's own open-time validation. From v2 onward schemas are
-written to `app/schemas/` and future migrations can be tested properly.
+<div align="center">
+<sub>Built for one phone, two banks and one person's actual money.</sub>
+</div>
