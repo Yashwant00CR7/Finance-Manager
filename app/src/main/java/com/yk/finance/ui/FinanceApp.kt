@@ -71,6 +71,7 @@ import com.yk.finance.FinanceApplication
 import com.yk.finance.domain.formatRupees
 import com.yk.finance.BuildConfig
 import com.yk.finance.ui.theme.LocalMoneyColors
+import com.yk.finance.widget.WidgetRoute
 import kotlinx.coroutines.launch
 
 private enum class Tab(val label: String) {
@@ -94,7 +95,7 @@ private sealed interface Route {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FinanceApp(app: FinanceApplication) {
+fun FinanceApp(app: FinanceApplication, widgetRoute: String? = null) {
     val vm: FinanceViewModel = viewModel(
         factory = FinanceViewModel.Factory(app.repository, app.budgets, app.model, app.prefs),
     )
@@ -120,6 +121,16 @@ fun FinanceApp(app: FinanceApplication) {
 
     var tab by remember { mutableStateOf(Tab.RECORDS) }
     var route by remember { mutableStateOf<Route>(Route.Tabs) }
+
+    // A widget tap arrives as a changing key rather than an initial value, because the
+    // app is singleTop: the second tap reaches an Activity that is already composed,
+    // and an initial value would be ignored exactly when it mattered most.
+    LaunchedEffect(widgetRoute) {
+        when (widgetRoute?.substringBefore('#')) {
+            WidgetRoute.BUDGETS -> { route = Route.Tabs; tab = Tab.BUDGETS }
+            WidgetRoute.ADD_EXPENSE -> route = Route.Entry(null)
+        }
+    }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val money = LocalMoneyColors.current

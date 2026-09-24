@@ -9,6 +9,7 @@ import com.yk.finance.FinanceApplication
 import com.yk.finance.domain.CategoryPrompt
 import com.yk.finance.domain.IngestOutcome
 import com.yk.finance.domain.RecordedAlert
+import com.yk.finance.widget.WidgetRefresh
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,7 +39,13 @@ class SmsReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                when (val outcome = app.ingestor.ingest(sender, body, receivedAt)) {
+                val outcome = app.ingestor.ingest(sender, body, receivedAt)
+                // Anything that reached the ledger moves the widget's figures. Asked
+                // for unconditionally rather than per-outcome: a transfer leg changes
+                // no total but a dropped duplicate proves the widget is already right,
+                // and a redraw that changes nothing costs nothing.
+                WidgetRefresh.request(context)
+                when (outcome) {
                     is IngestOutcome.Recorded -> {
                         app.budgets.evaluateAndNotify(context)
                         // Either/or, never both: a payment with no category is a

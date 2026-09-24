@@ -313,6 +313,23 @@ interface FinanceDao {
     )
     suspend fun spendingBetween(from: Long, to: Long): List<Txn>
 
+    /**
+     * Credits inside a window, for the widget's income ceiling.
+     *
+     * The exclusions mirror Ledger.isIncome exactly and for its reasons: a transfer leg
+     * is your own money moving, a settlement is your own money returning, and an
+     * adjustment is a correction rather than earnings. Counting any of them would raise
+     * the ceiling the widget measures your spending against, which is the one direction
+     * an error here is invisible in - the bar would simply look healthier than it is.
+     */
+    @Query(
+        "SELECT * FROM transactions WHERE direction = 'CREDIT' " +
+            "AND transferGroupId IS NULL " +
+            "AND source NOT IN ('TRANSFER_LEG', 'ADJUSTMENT', 'SETTLEMENT') " +
+            "AND occurredAt >= :from AND occurredAt < :to",
+    )
+    suspend fun incomeBetween(from: Long, to: Long): List<Txn>
+
     // ----- v2.0: cycle history -----
 
     @Query("SELECT * FROM cycle_history ORDER BY startMillis")

@@ -5,7 +5,7 @@
 **Your bank already texts you every time money moves.
 This app just listens.**
 
-[![version](https://img.shields.io/badge/version-2.4.0-5E35B1)](#)
+[![version](https://img.shields.io/badge/version-2.6.0-5E35B1)](#)
 [![platform](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](#)
 [![kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](#)
 [![compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)](#)
@@ -249,6 +249,39 @@ a very different claim from one you have to take on trust.
 Note also that it asks for `RECEIVE_SMS` only, **not** `READ_SMS`: there is no inbox
 backfill, so the app can see messages that arrive from now on and has no access to the
 ones already on your phone.
+
+---
+
+## The home screen widget
+
+```
+┌────────────────────────────────────────┐
+│  September                             │
+│  ₹18,240 of ₹42,000 in          ┌───┐  │
+│  █████████░░░░░░░░░░░░  43%     │ + │  │
+│  ₹23,760 left · 8 days          └───┘  │
+└────────────────────────────────────────┘
+```
+
+One 4×2 widget, plain `RemoteViews`, no new dependency. It counts the **salary cycle**
+— payday to payday — which is the one place in the app that does not count calendar
+months. That is deliberate and it has a cost: the Budgets screen's September and the
+widget's September cover different days and will not match. The widget answers "how
+much of this pay packet is left", which is a different question from "what did
+September cost".
+
+The bar needs a ceiling, and takes the first of these that exists:
+
+1. The overall budget for the month the cycle is labelled with
+2. **Income received this cycle** — reads "of ₹42,000 **in**". Because a cycle opens
+   on salary day, this is your salary from hour one
+3. Neither — no bar, and it says "waiting for salary" rather than drawing an empty
+   trough, which would read as "you have spent nothing"
+
+Tapping it opens Budgets; the `+` opens a new expense. It never polls: every figure it
+shows is moved by an SMS arriving, by something you did in the app, or by the date
+changing, and each of those pushes a redraw. Figures are whole rupees — the only place
+in the app that drops paise, because at arm's length the bar needs the width more.
 
 ---
 
