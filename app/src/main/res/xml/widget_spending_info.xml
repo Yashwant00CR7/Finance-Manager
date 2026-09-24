@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    4x2, horizontally resizable only. There is nothing to reflow into extra height -
+    the content is four fixed rows - so offering a vertical grab handle would only let
+    you make it wrong.
+
+    No updatePeriodMillis: every change that can move these figures already pushes an
+    update (see WidgetRefresh), and polling would wake the device to redraw numbers
+    that have not changed.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="180dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/widget_spending" />

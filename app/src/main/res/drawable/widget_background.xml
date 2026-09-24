@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The dark panel. Fixed rather than theme-following: a widget sits on the user's own
+    wallpaper, not inside the app, so it has to stay legible against an image nobody
+    here has seen. A translucent dark plate works over both a bright photo and a dark
+    one; a theme-following surface would vanish into half of them.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#E62A2A2E" />
+    <corners android:radius="24dp" />
+</shape>

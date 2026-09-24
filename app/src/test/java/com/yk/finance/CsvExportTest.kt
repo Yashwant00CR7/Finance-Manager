@@ -3,12 +3,9 @@ package com.yk.finance
 import com.yk.finance.backup.CsvExport
 import com.yk.finance.data.Account
 import com.yk.finance.data.AccountKind
+import com.yk.finance.data.ALL_MIGRATIONS
 import com.yk.finance.data.AppDatabase
 import com.yk.finance.data.Category
-import com.yk.finance.data.MIGRATION_1_2
-import com.yk.finance.data.MIGRATION_2_3
-import com.yk.finance.data.MIGRATION_3_4
-import com.yk.finance.data.MIGRATION_4_5
 import com.yk.finance.data.Txn
 import com.yk.finance.data.TxnSource
 import com.yk.finance.parser.Channel
@@ -176,8 +173,9 @@ class MigrationVersionTest {
         // A gap here is not a test failure in the abstract: Room refuses to open a
         // database it cannot walk to the current version, and the ledger is unreachable
         // until the app is fixed and reinstalled.
-        val chain = listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
-            .sortedBy { it.startVersion }
+        // Reads the same array the database builder is given, so a migration can no
+        // longer be added to one and forgotten in the other.
+        val chain = ALL_MIGRATIONS.sortedBy { it.startVersion }
 
         assertEquals(1, chain.first().startVersion)
         assertEquals(AppDatabase.SCHEMA_VERSION, chain.last().endVersion)

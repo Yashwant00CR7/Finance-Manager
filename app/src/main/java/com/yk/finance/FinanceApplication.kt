@@ -14,6 +14,7 @@ import com.yk.finance.domain.CycleCalculator
 import com.yk.finance.domain.ImportService
 import com.yk.finance.domain.LookSync
 import com.yk.finance.domain.Repository
+import com.yk.finance.domain.SenderEnrollment
 import com.yk.finance.domain.SmsIngestor
 import com.yk.finance.parser.RuleBasedParser
 import kotlinx.coroutines.CoroutineScope
@@ -64,6 +65,10 @@ class FinanceApplication : Application() {
         // rest of the app now speaks. See CategorySync for why it is not a migration.
         CategorySync.run(dao)
         LookSync.run(dao)
+        // The two verified bank headers, and the gate left observing. Not a migration
+        // for the same reason CategorySync is not one: it has to cover fresh installs,
+        // and it must never re-enrol a sender you removed on purpose.
+        SenderEnrollment.seed(dao)
         // Re-pins any cycle-pinned budget onto the calendar month it was labelled
         // with. Idempotent, so it sits here rather than behind a version flag.
         BudgetMigration.run(dao)

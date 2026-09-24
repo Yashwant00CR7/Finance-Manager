@@ -10,10 +10,12 @@ import com.yk.finance.data.Category
 import com.yk.finance.data.CategoryRule
 import com.yk.finance.data.CycleBoundary
 import com.yk.finance.data.CycleState
+import com.yk.finance.data.GateMode
 import com.yk.finance.data.ImportBatch
 import com.yk.finance.data.PendingReview
 import com.yk.finance.data.Prefs
 import com.yk.finance.data.QuickAddSuggestion
+import com.yk.finance.data.SenderEntry
 import com.yk.finance.data.Sharing
 import com.yk.finance.data.Txn
 import com.yk.finance.data.TxnSource
@@ -177,6 +179,35 @@ class FinanceViewModel(
     /** Rows carrying a guess nobody has confirmed or corrected. */
     val guessCount: StateFlow<Int> = repository.guessCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    // ----- sender registry: which SMS conversations may reach the ledger -----
+
+    val senders: StateFlow<List<SenderEntry>> = repository.senders
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Missing row means observing, matching the gate's own fail-safe default. */
+    val gateMode: StateFlow<GateMode> = repository.gateState
+        .map { it?.mode ?: GateMode.OBSERVE }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GateMode.OBSERVE)
+
+    val unenrolledTransactional: StateFlow<Int> = repository.unenrolledTransactional
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun enrollSender(header: String, bankKey: String?) = viewModelScope.launch {
+        repository.enrollSender(header, bankKey)
+    }
+
+    fun unenrollSender(header: String) = viewModelScope.launch {
+        repository.unenrollSender(header)
+    }
+
+    fun dismissSender(header: String) = viewModelScope.launch {
+        repository.dismissSender(header)
+    }
+
+    fun setGateMode(mode: GateMode) = viewModelScope.launch {
+        repository.setGateMode(mode)
+    }
 
     private val _autoFile = MutableStateFlow(prefs.autoFileCategories)
     val autoFile: StateFlow<Boolean> = _autoFile

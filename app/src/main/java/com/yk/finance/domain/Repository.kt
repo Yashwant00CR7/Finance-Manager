@@ -6,6 +6,7 @@ import com.yk.finance.data.AccountKind
 import com.yk.finance.data.Category
 import com.yk.finance.data.CategoryRule
 import com.yk.finance.data.FinanceDao
+import com.yk.finance.data.GateMode
 import com.yk.finance.data.Sharing
 import com.yk.finance.data.Txn
 import com.yk.finance.data.TxnSource
@@ -32,6 +33,10 @@ class Repository(
     val categories = dao.observeCategories()
     val reviews = dao.observeReviews()
     val reviewCount = dao.observeReviewCount()
+    val senders = dao.observeSenders()
+    val gateState = dao.observeGateState()
+    /** Senders you have not ruled on that have sent something money-shaped. */
+    val unenrolledTransactional = dao.observeUnenrolledTransactional()
     val budgets = dao.observeBudgets()
     val cycle = dao.observeCycleState()
 
@@ -856,4 +861,18 @@ class Repository(
     val boundaries = dao.observeBoundaries()
 
     val allTransactions = dao.observeAllTransactions()
+
+    // ----- sender registry -----
+
+    suspend fun enrollSender(header: String, bankKey: String?) =
+        SenderEnrollment.enroll(dao, header, bankKey)
+
+    suspend fun unenrollSender(header: String) = SenderEnrollment.unenroll(dao, header)
+
+    suspend fun dismissSender(header: String) = SenderEnrollment.dismiss(dao, header)
+
+    suspend fun setGateMode(mode: GateMode) = SenderEnrollment.setMode(dao, mode)
+
+    /** How much a sender has actually produced, for an honest un-enrol confirmation. */
+    suspend fun txnCountForSender(header: String): Int = dao.txnCountForSender(header)
 }

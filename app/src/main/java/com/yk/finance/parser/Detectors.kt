@@ -54,9 +54,21 @@ private val AMOUNT_ANYWHERE = Regex("""(?:Rs|INR)\.?:?\s*[0-9][0-9,]*(?:\.\d{1,2
 private val DIRECTION_ANYWHERE = Regex("""(debit|credit|withdraw|spent|paid)""", RegexOption.IGNORE_CASE)
 
 /**
- * Gate for the review tray. Only messages that look financial AND name a bank we
- * know reach the tray; everything else is dropped silently. Without this, a first
- * launch would bury the tray under OTPs and delivery notifications.
+ * Does this message have the shape of money moving - an amount and a direction word?
+ *
+ * This is the entire content peek the sender registry performs on a sender you have
+ * not enrolled. It reads the body in memory and yields one boolean, which becomes a
+ * counter; the text itself is never written anywhere. That is the line the allowlist
+ * draws: the app may learn that three messages from HDFCBK looked like transactions,
+ * so the enrol list can be worth reading, but not what any of them said.
+ */
+fun looksTransactional(body: String): Boolean =
+    AMOUNT_ANYWHERE.containsMatchIn(body) && DIRECTION_ANYWHERE.containsMatchIn(body)
+
+/**
+ * Gate for the review tray. Only messages that look financial AND come from a sender
+ * we have a bank for reach the tray; everything else is dropped silently. Without
+ * this, a first launch would bury the tray under OTPs and delivery notifications.
  */
 fun looksFinancial(body: String, bankKnown: Boolean): Boolean =
-    bankKnown && AMOUNT_ANYWHERE.containsMatchIn(body) && DIRECTION_ANYWHERE.containsMatchIn(body)
+    bankKnown && looksTransactional(body)

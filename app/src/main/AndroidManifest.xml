@@ -33,9 +33,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FinanceManager">
 
+        <!-- singleTop so a widget tap re-routes the running app through onNewIntent
+             instead of stacking a second copy of it on top of itself. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:label="@string/app_name"
             android:theme="@style/Theme.FinanceManager">
             <intent-filter>
@@ -53,6 +56,24 @@
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
+        </receiver>
+
+        <!-- The home screen widget. ACTION_DATE_CHANGED is here rather than in a
+             separate receiver because the only thing it does is ask this provider to
+             redraw, and it is the one figure that moves with no user action behind it. -->
+        <receiver
+            android:name=".widget.SpendingWidget"
+            android:exported="false"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_spending_info" />
         </receiver>
 
     </application>

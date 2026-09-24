@@ -4,12 +4,15 @@ import com.yk.finance.data.Account
 import com.yk.finance.data.AccountKind
 import com.yk.finance.data.CycleState
 import com.yk.finance.data.FinanceDao
+import com.yk.finance.data.GateMode
 import com.yk.finance.data.PendingReview
+import com.yk.finance.data.SenderEntry
 import com.yk.finance.data.Txn
 import com.yk.finance.data.TxnSource
 import com.yk.finance.parser.Direction
 import com.yk.finance.parser.ParseResult
 import com.yk.finance.parser.ParsedSms
+import com.yk.finance.parser.SenderIdentity
 import com.yk.finance.parser.TransactionParser
 import java.util.UUID
 
@@ -45,8 +48,80 @@ class SmsIngestor(
     private val model: CategoryModel? = null,
 ) {
 
-    suspend fun ingest(sender: String, body: String, receivedAt: Long): IngestOutcome =
-        when (val result = parser.parse(sender, body, receivedAt)) {
+    /**
+     * The gate, and then the parser.
+     *
+     * Everything up to the decision is bookkeeping; [SenderGate] makes the decision
+     * itself and has no database in it, which is what lets the ACTIVE branch - the one
+     * that destroys messages - be tested exhaustively.
+     */
+    suspend fun ingest(sender: String, body: String, receivedAt: Long): IngestOutcome {
+        val observation = SenderGate.observe(sender, body)
+
+        // Being *listed* and being *looked up* are different permissions, and
+        // conflating them silently breaks the escape hatch. A bare mobile number is
+        // never added to the seen list - that list must not become a record of
+        // everyone who texts you - but if you deliberately enrolled one, the gate is a
+        // plain lookup and has to find it.
+        val entry = when {
+            observation.header.isEmpty() -> null
+            observation.listable -> noteSeen(observation.header, receivedAt, observation.transactional)
+            else -> dao.senderByHeader(observation.header)
+        }
+
+        return when (val decision = SenderGate.decide(observation, body, entry, gateMode())) {
+            is SenderGate.Decision.Drop -> IngestOutcome.Ignored(decision.reason)
+            is SenderGate.Decision.Review -> {
+                dao.insertReview(
+                    PendingReview(
+                        sender = sender,
+                        rawMessage = body,
+                        receivedAt = receivedAt,
+                        reason = decision.reason,
+                    ),
+                )
+                IngestOutcome.Queued
+            }
+            is SenderGate.Decision.Parse -> booked(sender, decision.identity, body, receivedAt)
+        }
+    }
+
+    /**
+     * Records that a header sent something, and how it looked.
+     *
+     * Updates first and inserts only when nothing was updated, so a sender already in
+     * the table is never overwritten - in particular its state and its bank binding
+     * survive every message it sends.
+     */
+    private suspend fun noteSeen(header: String, at: Long, transactional: Boolean): SenderEntry? {
+        val bump = if (transactional) 1 else 0
+        if (dao.touchSender(header, at, bump) == 0) {
+            dao.insertSenderIfAbsent(
+                SenderEntry(
+                    header = header,
+                    firstSeenAt = at,
+                    lastSeenAt = at,
+                    messageCount = 1,
+                    transactionalCount = bump,
+                ),
+            )
+        }
+        return dao.senderByHeader(header)
+    }
+
+    /**
+     * Missing row means observe, which is the direction that loses nothing. A gate that
+     * failed closed on a database it could not read would go silently deaf.
+     */
+    private suspend fun gateMode(): GateMode = dao.gateState()?.mode ?: GateMode.OBSERVE
+
+    private suspend fun booked(
+        sender: String,
+        identity: SenderIdentity,
+        body: String,
+        receivedAt: Long,
+    ): IngestOutcome =
+        when (val result = parser.parse(sender, body, receivedAt, identity)) {
             is ParseResult.Ignored -> IngestOutcome.Ignored(result.reason)
             is ParseResult.NeedsReview -> {
                 dao.insertReview(
@@ -59,10 +134,10 @@ class SmsIngestor(
                 )
                 IngestOutcome.Queued
             }
-            is ParseResult.Parsed -> record(result.sms, receivedAt)
+            is ParseResult.Parsed -> record(result.sms, receivedAt, identity.header)
         }
 
-    private suspend fun record(sms: ParsedSms, receivedAt: Long): IngestOutcome {
+    private suspend fun record(sms: ParsedSms, receivedAt: Long, header: String): IngestOutcome {
         val account = resolveAccount(sms)
 
         // --- duplicate vs self-transfer -------------------------------------
@@ -88,7 +163,7 @@ class SmsIngestor(
                             source = TxnSource.TRANSFER_LEG,
                         ),
                     )
-                    insertTxn(sms, account, categoryId = null, countsAsSpending = false, groupId = groupId, source = TxnSource.TRANSFER_LEG)
+                    insertTxn(sms, account, categoryId = null, countsAsSpending = false, groupId = groupId, source = TxnSource.TRANSFER_LEG, header = header)
                     applyBalance(account, sms)
                     maybeRollCycle(sms, receivedAt)
                     return IngestOutcome.Transfer(groupId)
@@ -102,7 +177,7 @@ class SmsIngestor(
         if (TransferResolver.isCashWithdrawal(sms)) {
             val cash = ensureCashAccount()
             val groupId = UUID.randomUUID().toString()
-            insertTxn(sms, account, categoryId = null, countsAsSpending = false, groupId = groupId, source = TxnSource.TRANSFER_LEG)
+            insertTxn(sms, account, categoryId = null, countsAsSpending = false, groupId = groupId, source = TxnSource.TRANSFER_LEG, header = header)
             dao.insertTxn(
                 Txn(
                     accountId = cash.id,
@@ -115,6 +190,7 @@ class SmsIngestor(
                     countsAsSpending = false,
                     transferGroupId = groupId,
                     source = TxnSource.TRANSFER_LEG,
+                    sender = header,
                     note = "Moved to Cash wallet - log what you spend it on",
                 ),
             )
@@ -134,6 +210,7 @@ class SmsIngestor(
             countsAsSpending = countsAsSpending,
             groupId = null,
             source = TxnSource.SMS,
+            header = header,
             categoryWasInferred = choice?.inferred == true,
         )
         applyBalance(account, sms)
@@ -152,6 +229,7 @@ class SmsIngestor(
         countsAsSpending: Boolean,
         groupId: String?,
         source: TxnSource,
+        header: String,
         categoryWasInferred: Boolean = false,
     ): Long {
         return dao.insertTxn(
@@ -168,6 +246,7 @@ class SmsIngestor(
                 transferGroupId = groupId,
                 source = source,
                 rawMessage = sms.raw,
+                sender = header,
                 categoryWasInferred = categoryWasInferred,
             ),
         )

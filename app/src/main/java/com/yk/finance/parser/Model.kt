@@ -40,6 +40,27 @@ sealed interface ParseResult {
     data class Ignored(val reason: String) : ParseResult
 }
 
+/**
+ * A sender the registry has already vouched for, and what it says the sender is.
+ *
+ * Its presence is the parser's signal that the allowlist has run and let this message
+ * through, which changes two things: the header-shape guard is skipped, because a
+ * sender enrolled by hand has been vetted more carefully than any regex could, and the
+ * sender counts as a known bank even when [bankKey] names no rule yet - an enrolled
+ * bank with no parser written for it belongs in the review tray, not in the bin.
+ */
+data class SenderIdentity(val header: String, val bankKey: String?)
+
 interface TransactionParser {
-    fun parse(sender: String, body: String, receivedAt: Long): ParseResult
+    /**
+     * [identity] is null only when nothing gated this message - the parser then falls
+     * back to resolving the bank from the sender header itself, which is what the
+     * regression suite exercises and what keeps this function usable on its own.
+     */
+    fun parse(
+        sender: String,
+        body: String,
+        receivedAt: Long,
+        identity: SenderIdentity? = null,
+    ): ParseResult
 }

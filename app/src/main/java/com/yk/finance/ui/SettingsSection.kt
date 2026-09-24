@@ -48,6 +48,8 @@ fun SettingsSection(vm: FinanceViewModel, state: UiState) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (!smsGranted) MissingSmsPermissionCard()
 
+        SendersCard(vm)
+
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

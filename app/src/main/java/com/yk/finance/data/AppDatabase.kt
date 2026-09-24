@@ -24,6 +24,10 @@ class Converters {
     @TypeConverter fun stringToSource(s: String): TxnSource = TxnSource.valueOf(s)
     @TypeConverter fun sharingToString(s: Sharing): String = s.name
     @TypeConverter fun stringToSharing(s: String): Sharing = Sharing.valueOf(s)
+    @TypeConverter fun senderStateToString(s: SenderState): String = s.name
+    @TypeConverter fun stringToSenderState(s: String): SenderState = SenderState.valueOf(s)
+    @TypeConverter fun gateModeToString(m: GateMode): String = m.name
+    @TypeConverter fun stringToGateMode(s: String): GateMode = GateMode.valueOf(s)
 }
 
 /**
@@ -114,11 +118,39 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/**
+ * Schema 6: per-conversation SMS permissions.
+ *
+ * Two tables and one nullable column, all additive. The interesting part is what is
+ * *not* here: no sender is enrolled by this migration. Seeding lives in
+ * SenderEnrollment so that it also runs on a fresh install, stays idempotent, and -
+ * the load-bearing bit - only ever enrols a header it has never seen before, so
+ * removing one by hand is a decision the next launch respects.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        SchemaV6.STATEMENTS.forEach(db::execSQL)
+    }
+}
+
+/**
+ * The whole chain, in one place.
+ *
+ * Declared here rather than inline in the builder so the builder and the test that
+ * checks the chain is contiguous cannot disagree: adding a migration to one and not
+ * the other is precisely the mistake that leaves a released app unable to open its own
+ * ledger, and it is not a mistake a reader spots by eye.
+ */
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+)
+
 @Database(
     entities = [
         Account::class, Txn::class, Category::class, CategoryRule::class,
         Budget::class, PendingReview::class, CycleState::class, BudgetAlert::class,
         ImportBatch::class, ImportedRow::class, CycleBoundary::class,
+        SenderEntry::class, GateState::class,
     ],
     version = AppDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -128,7 +160,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): FinanceDao
 
     companion object {
-        const val SCHEMA_VERSION = 5
+        const val SCHEMA_VERSION = 6
         const val DB_NAME = "finance.db"
 
         @Volatile private var instance: AppDatabase? = null
@@ -142,7 +174,7 @@ abstract class AppDatabase : RoomDatabase() {
             return Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
                 // No fallbackToDestructiveMigration. A missing migration must fail loudly;
                 // silently wiping a ledger is the one outcome worse than a crash.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(*ALL_MIGRATIONS)
                 .build()
         }
 

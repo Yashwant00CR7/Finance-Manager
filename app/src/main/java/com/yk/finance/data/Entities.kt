@@ -112,6 +112,18 @@ data class Txn(
     val source: TxnSource = TxnSource.SMS,
     val note: String? = null,
     val rawMessage: String? = null,
+    /**
+     * The normalised DLT header this row was ingested from ("ICICIB"), or null for
+     * anything the app did not read out of an SMS - manual entries, imports, and every
+     * row written before the sender registry existed.
+     *
+     * Provenance, and the reason it is a column rather than something inferred from the
+     * account: an account tells you which bank, never which conversation, and the whole
+     * premise of the allowlist is that a conversation is the thing you opted into. It
+     * is also what lets un-enrolling a sender say honestly how much it has produced
+     * before you do it.
+     */
+    val sender: String? = null,
     /** Set on rows written by an import. Null for everything the app recorded itself. */
     val importBatchId: String? = null,
     /** Stable hash used to recognise a row we have already imported. See ImportedRow. */
@@ -296,4 +308,69 @@ data class QuickAddSuggestion(
     val accountId: Long,
     val uses: Int,
     val lastUsedAt: Long,
+)
+
+/** Where a sender stands with you. The gate reads exactly this. */
+enum class SenderState {
+    /** Seen, counted, not opted into. The default for everything that arrives. */
+    UNKNOWN,
+
+    /** Opted in. Its messages are the only ones the parser is ever shown. */
+    ENROLLED,
+
+    /** Judged not to be a bank. Still counted, hidden from the enrol list forever. */
+    DISMISSED,
+}
+
+/**
+ * Whether the allowlist is advisory or binding.
+ *
+ * [OBSERVE] decides but does not drop: an unenrolled sender whose message looks like
+ * money still reaches the review tray, so nothing is lost while the list is being
+ * built. That matters because the list starts out knowing almost nothing - the seed is
+ * two headers, and whether they are *your* headers cannot be checked without READ_SMS,
+ * which this app deliberately does not hold.
+ *
+ * [ACTIVE] is the real gate: an unenrolled sender is dropped unread beyond a counter.
+ */
+enum class GateMode { OBSERVE, ACTIVE }
+
+/**
+ * One SMS conversation, as an entry you can opt into.
+ *
+ * Apps get a permission each; SMS conversations get one permission between all of
+ * them, which is why "only track the messages from this bank" is not something the
+ * platform can express and this table has to. Keyed on the normalised DLT header
+ * rather than the raw sender - see SenderHeader for why the operator prefix must go.
+ *
+ * The two counters are the entire record of a sender you have not enrolled: how many
+ * messages arrived, and how many of them had the shape of money moving. No body text
+ * from an unenrolled sender is ever stored, so the enrol list can tell you that
+ * HDFCBK sent three transaction-shaped messages without keeping one of them.
+ */
+@Entity(tableName = "sender_registry")
+data class SenderEntry(
+    @PrimaryKey val header: String,
+    val state: SenderState = SenderState.UNKNOWN,
+    /** Which [BankRule] parses this sender. Null means enrolled with no rule yet. */
+    val bankKey: String? = null,
+    val firstSeenAt: Long,
+    val lastSeenAt: Long,
+    val messageCount: Int = 0,
+    val transactionalCount: Int = 0,
+)
+
+/**
+ * The gate's mode. A one-row table rather than a pref, and deliberately so.
+ *
+ * Prefs are excluded from the backup on the grounds that they describe this install
+ * rather than your money. This one does not: it governs [SenderEntry], which is Room
+ * and therefore does travel in a snapshot. Splitting them across the backup boundary
+ * would produce the one state nobody chose - your allowlist restored, the mode reset
+ * to its default - so the mode lives where the list lives and comes back with it.
+ */
+@Entity(tableName = "gate_state")
+data class GateState(
+    @PrimaryKey val id: Long = 1,
+    val mode: GateMode = GateMode.OBSERVE,
 )

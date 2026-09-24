@@ -17,15 +17,34 @@ interface BankRule {
     val bank: String
 
     /**
-     * Does this rule own the message? The DLT sender header is the authoritative
-     * identifier ("VM-ICICIB"), with a body mention as fallback. Relying on the body
-     * alone is fragile: a bank is not obliged to name itself in every message, and one
-     * that does not would otherwise be ignored entirely.
+     * Normalised DLT header prefixes this rule owns - "ICICI" covers ICICIB, ICICIT
+     * and ICICIC alike, which is how one bank's several registered headers reach one
+     * parser.
      */
-    fun claims(sender: String, body: String): Boolean
+    val headerPrefixes: Set<String>
+
+    /**
+     * Whose message is this? The sender header decides, and nothing else does.
+     *
+     * There used to be a body-mention fallback here, and it was a hole: a message from
+     * anybody at all that happened to contain the word "ICICI" was claimed by the ICICI
+     * rule and parsed against your account. Identity and content are now separate
+     * questions - the header says who sent it, the body only says what it means.
+     *
+     * Note this is asked of the *normalised* header, never the raw sender, so it cannot
+     * be fooled by the operator prefix. See [SenderHeader].
+     */
+    fun ownsHeader(header: String): Boolean = headerPrefixes.any { header.startsWith(it) }
 
     fun tryParse(body: String, receivedAt: Long): ParsedSms?
 }
+
+/** The bank keys the app can actually parse. Enrolling any other sender is allowed;
+ *  its messages reach the review tray instead of a rule. */
+fun parsableBankKeys(): Set<String> = ALL_BANK_RULES.map { it.bank }.toSet()
+
+/** Which rule, if any, recognises a header - used to suggest a bank when you enrol. */
+fun ruleForHeader(header: String): BankRule? = ALL_BANK_RULES.firstOrNull { it.ownsHeader(header) }
 
 /**
  * ICICI. Verified against 6 real messages.
@@ -44,8 +63,8 @@ interface BankRule {
 object IciciRule : BankRule {
     override val bank = "ICICI"
 
-    private val MENTIONS = Regex("""ICICI""", RegexOption.IGNORE_CASE)
-    private val SENDER = Regex("""ICICI|ICICIB""", RegexOption.IGNORE_CASE)
+    /** ICICIB is the verified one; ICICIT and ICICIC are the same bank on other headers. */
+    override val headerPrefixes = setOf("ICICI")
 
     // "Acct XX742 debited for Rs 169.00 on 11-Sep-26"  (verified)
     private val DEBIT_FOR = Regex(
@@ -72,9 +91,6 @@ object IciciRule : BankRule {
     private val PAYEE_CREDIT = Regex("""\bfrom\s+([^.;]+?)\s*[.;]""", RegexOption.IGNORE_CASE)
     private val REF = Regex("""UPI[:\s]*(\d{6,})""", RegexOption.IGNORE_CASE)
     private val INFO = Regex("""Info[:\s]+([^.]+)""", RegexOption.IGNORE_CASE)
-
-    override fun claims(sender: String, body: String) =
-        SENDER.containsMatchIn(sender) || MENTIONS.containsMatchIn(body)
 
     override fun tryParse(body: String, receivedAt: Long): ParsedSms? {
         // Order matters only in that each pattern is mutually exclusive by shape.
@@ -121,8 +137,8 @@ object IciciRule : BankRule {
 object UnionRule : BankRule {
     override val bank = "UNION"
 
-    private val MENTIONS = Regex("""Union\s+Bank""", RegexOption.IGNORE_CASE)
-    private val SENDER = Regex("""UNIONB|UNION|UBIN""", RegexOption.IGNORE_CASE)
+    /** UNIONB is the verified one; UBIN* headers are the same bank. */
+    override val headerPrefixes = setOf("UNION", "UBIN")
 
     private val TXN = Regex(
         """A/c\s+\*+(\d+)\s+(Debited|Credited)\s+for\s+(?:Rs|INR)\.?:?\s*$AMT\s+on\s+(\d{2}-\d{2}-\d{4})(?:\s+(\d{2}:\d{2}:\d{2}))?""",
@@ -130,9 +146,6 @@ object UnionRule : BankRule {
     )
     private val REF = Regex("""ref\s*no\.?\s*(\d{6,})""", RegexOption.IGNORE_CASE)
     private val BY_CHANNEL = Regex("""\bby\s+(.+?)\s+ref\s*no""", RegexOption.IGNORE_CASE)
-
-    override fun claims(sender: String, body: String) =
-        SENDER.containsMatchIn(sender) || MENTIONS.containsMatchIn(body)
 
     override fun tryParse(body: String, receivedAt: Long): ParsedSms? {
         val m = TXN.find(body) ?: return null

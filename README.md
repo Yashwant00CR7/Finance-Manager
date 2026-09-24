@@ -5,7 +5,7 @@
 **Your bank already texts you every time money moves.
 This app just listens.**
 
-[![version](https://img.shields.io/badge/version-2.4.0-5E35B1)](#)
+[![version](https://img.shields.io/badge/version-2.5.0-5E35B1)](#)
 [![platform](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](#)
 [![kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](#)
 [![compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)](#)
@@ -75,9 +75,10 @@ In practice that means:
 
 ```mermaid
 flowchart TD
-    A["SMS arrives"] --> B{"Does a bank rule<br/>claim the sender?"}
-    B -->|no| Z["Dropped silently"]
-    B -->|yes| C{"Is the body shaped like a<br/>COMPLETED transaction?"}
+    A["SMS arrives"] --> N{"Is this sender<br/>on your list?"}
+    N -->|"no — gate ACTIVE"| Z2["Dropped unread.<br/>Only a counter is kept"]
+    N -->|"no — gate OBSERVE"| R
+    N -->|yes| C{"Is the body shaped like a<br/>COMPLETED transaction?"}
     C -->|"no — but it mentions<br/>money and a bank"| R["Review tray<br/>(a question, never a loss)"]
     C -->|no| Z
     C -->|yes| D{"Shares a reference with<br/>something already filed?"}
@@ -249,6 +250,79 @@ a very different claim from one you have to take on trust.
 Note also that it asks for `RECEIVE_SMS` only, **not** `READ_SMS`: there is no inbox
 backfill, so the app can see messages that arrive from now on and has no access to the
 ones already on your phone.
+
+### Conversations get permissions, the way apps do
+
+Apps are addressable one at a time — a notification carries the package that posted it,
+so "only this app" is something the platform can express. SMS conversations are not:
+every message arrives through one receiver carrying one sender string, and Android has
+no notion of granting one conversation and refusing another.
+
+So the app supplies the missing granularity itself. `sender_registry` is an allowlist of
+senders, and it is the *only* thing that decides whose message a message is. There used
+to be a body-mention fallback — a rule claimed anything containing its bank's name — and
+it was a hole: a message from anybody at all saying "ICICI" was parsed against your
+account. Identity and content are now separate questions.
+
+Entries are keyed on the **DLT header**, which is the middle of the sender, not the
+whole of it. Real senders on this phone look like `AD-ICICIT-S`, `AX-ICICIT-S`,
+`JK-UNIONB-S`, `JX-UNIONB-T`:
+
+| Part | What it is | Stable? |
+|---|---|---|
+| `AD-`, `JX-`, `UNIB-` | Operator and circle, stamped on by whichever network routed it | No |
+| `ICICIT`, `UNIONB` | The bank's DLT-registered header | **Yes** |
+| `-S`, `-T` | Content category — service, transactional, promotional | No |
+
+Both ends are discarded and nothing assumes a width: the prefix can be two characters
+or four. An earlier version took everything after the *final* hyphen, which collapsed
+every sender on the phone onto `S` or `T` and put ICICI and Union in one entry while
+still looking plausible — the rule is positional for that reason. Typing just `ICICIT`
+into the manual field means the same thing as pasting `AD-ICICIT-S`.
+
+The gate ships **observing**, and that is load-bearing. It is seeded with `ICICIT` and
+`UNIONB` — the headers actually confirmed on this phone — but without `READ_SMS` the
+app cannot check them for anyone else. While observing, an unenrolled
+sender whose message looks like money still reaches the review tray, so a wrong guess
+surfaces instead of vanishing. Turning the gate on makes it binding: unenrolled senders
+are dropped unread, and nothing dropped comes back.
+
+What the app knows about a sender you have not enrolled is two integers — how many
+messages arrived, and how many had the shape of money moving. The bodies are read in
+memory to produce that second number and are never written anywhere.
+
+---
+
+## The home screen widget
+
+```
+┌────────────────────────────────────────┐
+│  September                             │
+│  ₹18,240 of ₹42,000 in          ┌───┐  │
+│  █████████░░░░░░░░░░░░  43%     │ + │  │
+│  ₹23,760 left · 8 days          └───┘  │
+└────────────────────────────────────────┘
+```
+
+One 4×2 widget, plain `RemoteViews`, no new dependency. It counts the **salary cycle**
+— payday to payday — which is the one place in the app that does not count calendar
+months. That is deliberate and it has a cost: the Budgets screen's September and the
+widget's September cover different days and will not match. The widget answers "how
+much of this pay packet is left", which is a different question from "what did
+September cost".
+
+The bar needs a ceiling, and takes the first of these that exists:
+
+1. The overall budget for the month the cycle is labelled with
+2. **Income received this cycle** — reads "of ₹42,000 **in**". Because a cycle opens
+   on salary day, this is your salary from hour one
+3. Neither — no bar, and it says "waiting for salary" rather than drawing an empty
+   trough, which would read as "you have spent nothing"
+
+Tapping it opens Budgets; the `+` opens a new expense. It never polls: every figure it
+shows is moved by an SMS arriving, by something you did in the app, or by the date
+changing, and each of those pushes a redraw. Figures are whole rupees — the only place
+in the app that drops paise, because at arm's length the bar needs the width more.
 
 ---
 

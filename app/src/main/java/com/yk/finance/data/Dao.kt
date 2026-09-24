@@ -284,6 +284,67 @@ interface FinanceDao {
     @Query("DELETE FROM pending_reviews WHERE id = :id")
     suspend fun dismissReview(id: Long)
 
+    // ----- sender registry: the per-conversation allowlist -----
+
+    @Query("SELECT * FROM sender_registry WHERE header = :header")
+    suspend fun senderByHeader(header: String): SenderEntry?
+
+    /**
+     * Enrolled first, then whatever looked most like money, then whatever arrived most
+     * recently. DISMISSED sorts last and the UI drops it entirely - the ordering is
+     * what keeps a list fed by dozens of promotional headers a month readable.
+     */
+    @Query(
+        "SELECT * FROM sender_registry ORDER BY " +
+            "CASE state WHEN 'ENROLLED' THEN 0 WHEN 'UNKNOWN' THEN 1 ELSE 2 END, " +
+            "transactionalCount DESC, lastSeenAt DESC",
+    )
+    fun observeSenders(): Flow<List<SenderEntry>>
+
+    @Upsert
+    suspend fun upsertSender(entry: SenderEntry)
+
+    /**
+     * First sighting of a header. IGNORE rather than upsert on purpose: this runs on
+     * every message from an unknown sender, and a conflict here means the row already
+     * exists - overwriting it would reset a sender you had enrolled back to UNKNOWN and
+     * the only symptom would be transactions quietly ceasing to appear.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertSenderIfAbsent(entry: SenderEntry)
+
+    /**
+     * Bumps the counters for a header already in the table, and reports whether there
+     * was one. Returning the row count is what lets the caller insert only when the
+     * sender is genuinely new, without reading first.
+     */
+    @Query(
+        "UPDATE sender_registry SET messageCount = messageCount + 1, " +
+            "transactionalCount = transactionalCount + :transactional, lastSeenAt = :at " +
+            "WHERE header = :header",
+    )
+    suspend fun touchSender(header: String, at: Long, transactional: Int): Int
+
+    @Query("UPDATE sender_registry SET state = :state, bankKey = :bankKey WHERE header = :header")
+    suspend fun setSenderState(header: String, state: SenderState, bankKey: String?)
+
+    /** The badge: senders you have not ruled on that have sent something money-shaped. */
+    @Query("SELECT COUNT(*) FROM sender_registry WHERE state = 'UNKNOWN' AND transactionalCount > 0")
+    fun observeUnenrolledTransactional(): Flow<Int>
+
+    /** What un-enrolling would walk away from. See Txn.sender. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE sender = :header")
+    suspend fun txnCountForSender(header: String): Int
+
+    @Query("SELECT * FROM gate_state WHERE id = 1")
+    suspend fun gateState(): GateState?
+
+    @Query("SELECT * FROM gate_state WHERE id = 1")
+    fun observeGateState(): Flow<GateState?>
+
+    @Upsert
+    suspend fun upsertGate(state: GateState)
+
     // ----- cycle -----
     @Query("SELECT * FROM cycle_state WHERE id = 1")
     suspend fun cycleState(): CycleState?
@@ -312,6 +373,23 @@ interface FinanceDao {
             "AND occurredAt >= :from AND occurredAt < :to",
     )
     suspend fun spendingBetween(from: Long, to: Long): List<Txn>
+
+    /**
+     * Credits inside a window, for the widget's income ceiling.
+     *
+     * The exclusions mirror Ledger.isIncome exactly and for its reasons: a transfer leg
+     * is your own money moving, a settlement is your own money returning, and an
+     * adjustment is a correction rather than earnings. Counting any of them would raise
+     * the ceiling the widget measures your spending against, which is the one direction
+     * an error here is invisible in - the bar would simply look healthier than it is.
+     */
+    @Query(
+        "SELECT * FROM transactions WHERE direction = 'CREDIT' " +
+            "AND transferGroupId IS NULL " +
+            "AND source NOT IN ('TRANSFER_LEG', 'ADJUSTMENT', 'SETTLEMENT') " +
+            "AND occurredAt >= :from AND occurredAt < :to",
+    )
+    suspend fun incomeBetween(from: Long, to: Long): List<Txn>
 
     // ----- v2.0: cycle history -----
 
