@@ -86,6 +86,14 @@ private val NOT_YET_HAPPENED = listOf(
     // matching spend alert, so booking it would double every card purchase.
     Regex("""\bis\s+(the\s+)?OTP\s+for""", RegexOption.IGNORE_CASE),
     Regex("""\bOTP\s+for\s+(txn|transaction|purchase)""", RegexOption.IGNORE_CASE),
+    Regex("""(?:is\s+)?(?:the\s+)?one\s+time\s+password\s*\(?OTP\)?\s+for""", RegexOption.IGNORE_CASE),
+
+    // Phishing / smishing impersonating Indian bank reward-points cash redemption
+    Regex("""points\s+worth\s+(?:Rs|INR|₹)[^.]{0,30}will\s+expire""", RegexOption.IGNORE_CASE),
+    Regex("""redeem\s+(?:your\s+)?points\s+in\s+cash""", RegexOption.IGNORE_CASE),
+
+    // Inquiries and applications, not transactions
+    Regex("""received\s+your\s+(?:personal\s+)?loan\s+request""", RegexOption.IGNORE_CASE),
 
     // The counterparty's copy of a transfer we have already recorded from our own side.
     // IDFC and Federal both send one minutes after the debit, carrying the same reference.

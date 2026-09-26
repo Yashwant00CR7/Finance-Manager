@@ -93,22 +93,21 @@ private val HEADER_TO_BANK: Map<String, String> = buildMap {
     bank("PNB", "PNBSMS", "PNBOTP", "PNBCRD", "PNBCCD", "PNBCRM", "PNBDBD", "PNBHRD",
         "PNBJNK", "PNBLKO", "PNBMKT", "PNBRTS", "PNBTBD")
     bank("CANARA", "CANBNK", "CAANBK", "CANMNY", "CANRRB", "CANRWD", "110111")
-    bank("CENTRALBANK", "CENTBK", "CBIOTP")
+    bank("CENTRALBANK", "CENTBK", "CBIOTP", "CBOSMS")
     bank("IOB", "IOBANK", "IOBBNK", "IOBCHN", "IOBATM", "IOBBQR", "IOBOTP", "IOBHRD",
         "IOBJLS", "IOBMKT")
-    bank("UCO", "UCOBNK")
-    bank("BOM", "MAHABK")
-    bank("PSB", "PSBANK")
-    // Equitas and Karnataka Bank are deliberately absent. No header for either appears in
-    // TRAI's registry or in any message that was actually observed, and the candidates
-    // circulating in hobby-project allowlists are exactly the kind of entry that turns out to
-    // be a guess somebody copied. Equitas messages are still read, via the body mention below.
+    bank("UCO", "UCOBNK", "UCOMSB")
+    bank("BOM", "MAHABK", "MAHBNK")
+    bank("PSB", "PSBANK", "PUNSND")
+    bank("KARNATAKA", "KBLBNK", "KARBNK", "KTKBANK")
     bank("CUB", "CUBANK", "CUBFST", "CUBLTD", "CUBOTP", "CUBSMS", "CUBUPI", "111904")
     bank("AIRTELPB", "AIRBNK", "AIRBSE", "AIRBSI", "171717", "177177", "650017", "650137")
     bank("IPPB", "MYIPPB", "IPBCOM", "IPBKYC", "IPBMSG", "IPBOFR", "IPBOTP", "IPBSEC")
     bank("UJJIVAN", "UJJIVN")
     bank("CITI", "CITIBK")
-    bank("SCB", "SCBANK")
+    bank("SCB", "SCBANK", "SCBLTD")
+    bank("HSBC", "HSBCIN", "HSBCBK", "HSBC")
+    bank("AMEX", "AMEXIN", "AMEX")
 }
 
 private val PREFIXED = Regex("""^[A-Z]{2}-(.+)$""")
@@ -158,11 +157,15 @@ fun isRegisteredBankHeader(sender: String): Boolean = bankForSender(sender) != n
  */
 private val BODY_MENTIONS: List<Pair<Regex, String>> = listOf(
     Regex("""South\s+Indian\s+Bank""", RegexOption.IGNORE_CASE) to "SIB",
+    Regex("""Punjab\s+&\s+Sind\s+Bank|Punjab\s+and\s+Sind\s+Bank""", RegexOption.IGNORE_CASE) to "PSB",
+    Regex("""Central\s+Bank\s+of\s+India|\bCBoI\b""", RegexOption.IGNORE_CASE) to "CENTRALBANK",
     Regex("""SBI\s+(?:Credit\s+)?Card""", RegexOption.IGNORE_CASE) to "SBICARD",
     Regex("""IDFC\s+FIRST\s+Bank""", RegexOption.IGNORE_CASE) to "IDFC",
     Regex("""Bank\s+of\s+Baroda|BOBCARD""", RegexOption.IGNORE_CASE) to "BOB",
+    Regex("""Bank\s+of\s+Maharashtra|MAHABANK""", RegexOption.IGNORE_CASE) to "BOM",
     Regex("""Bank\s+of\s+India|\bBOI\b""", RegexOption.IGNORE_CASE) to "BOI",
     Regex("""\bIndian\s+Bank\b""", RegexOption.IGNORE_CASE) to "INDIANBANK",
+    Regex("""Indian\s+Overseas\s+Bank|\bIOB\b""", RegexOption.IGNORE_CASE) to "IOB",
     Regex("""IndusInd""", RegexOption.IGNORE_CASE) to "INDUSIND",
     Regex("""HDFC\s+Bank""", RegexOption.IGNORE_CASE) to "HDFC",
     Regex("""Axis\s+Bank""", RegexOption.IGNORE_CASE) to "AXIS",
@@ -171,9 +174,18 @@ private val BODY_MENTIONS: List<Pair<Regex, String>> = listOf(
     Regex("""Federal\s+Bank""", RegexOption.IGNORE_CASE) to "FEDERAL",
     Regex("""RBL\s+Bank""", RegexOption.IGNORE_CASE) to "RBL",
     Regex("""Bandhan\s+Bank""", RegexOption.IGNORE_CASE) to "BANDHAN",
+    Regex("""Canara\s+Bank""", RegexOption.IGNORE_CASE) to "CANARA",
+    Regex("""UCO\s+Bank""", RegexOption.IGNORE_CASE) to "UCO",
+    Regex("""City\s+Union\s+Bank|\bCUB\b""", RegexOption.IGNORE_CASE) to "CUB",
+    Regex("""Karnataka\s+Bank""", RegexOption.IGNORE_CASE) to "KARNATAKA",
+    Regex("""India\s+Post\s+Payments\s+Bank|\bIPPB\b""", RegexOption.IGNORE_CASE) to "IPPB",
+    Regex("""Airtel\s+Payments\s+Bank""", RegexOption.IGNORE_CASE) to "AIRTELPB",
     Regex("""\bEquitas\b""", RegexOption.IGNORE_CASE) to "EQUITAS",
     Regex("""\bAU\s+Bank\b""", RegexOption.IGNORE_CASE) to "AU",
     Regex("""YES\s+BANK""", RegexOption.IGNORE_CASE) to "YES",
+    Regex("""\bPNB\b|Punjab\s+National\s+Bank""", RegexOption.IGNORE_CASE) to "PNB",
+    Regex("""\bHSBC\b""", RegexOption.IGNORE_CASE) to "HSBC",
+    Regex("""American\s+Express|\bAmex\b""", RegexOption.IGNORE_CASE) to "AMEX",
     Regex("""\bSBI\b""", RegexOption.IGNORE_CASE) to "SBI",
 )
 

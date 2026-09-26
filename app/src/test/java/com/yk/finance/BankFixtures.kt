@@ -33,6 +33,10 @@ data class NegativeFixture(
 private const val PW = "pennywiseai-tracker parser-core test fixtures"
 private const val DUMP = "shivarya/expense-tracker-scraper data/sms-export.json"
 private const val TXNVAULT = "yassk29/TxnVault test/unit/sms_parsers_test.dart"
+private const val ELEMENTORA = "sskadit/elementora data.json"
+private const val CARDS = "Indian CARD transaction SMS evidence file"
+private const val SMARTEX = "smartex-bank.csv real inbox dump"
+private const val METIS = "metis.csv real inbox dump"
 
 val BANK_FIXTURES: List<Fixture> = listOf(
     // ----- HDFC -----
@@ -333,6 +337,145 @@ val BANK_FIXTURES: List<Fixture> = listOf(
         "INR 500.00 spent using ICICI Bank Card XX5678 on 06-Sep-25 on Swiggy. Avl Limit: INR 1,50,000.00.",
         "ICICI", Direction.DEBIT, 50_000, "5678", payee = "Swiggy", isCard = true, source = PW,
     ),
+    Fixture(
+        "ICICI.credit_card_spend.v1", "AD-ICICIT-S",
+        "ICICI Bank Credit Card XX2003 debited for Rs 450.00 on 12-Jan-26; DOMINOS credited. Avl Lmt: Rs 1,45,000.00.",
+        "ICICI", Direction.DEBIT, 45_000, "2003", payee = "DOMINOS", isCard = true, source = CARDS,
+    ),
+    Fixture(
+        "HDFC.card_spend_elementora.v1", "AD-HDFCBK",
+        "Rs.376.70 was spent on ur HDFCBank CREDIT Card ending 3215 on 2016-04-03:11:37:20 at APOLLO PHARMACY.Avl bal - Rs.576628.30, curr o/s - Rs.23371.70",
+        "HDFC", Direction.DEBIT, 37_670, "3215", payee = "APOLLO PHARMACY", isCard = true, source = ELEMENTORA,
+    ),
+
+    // ----- PNB -----
+    Fixture(
+        "PNB.debit.v1", "VM-PNBSMS-S",
+        "Ac XX1234 Debited with Rs.5000.00, 20-02-2026 07:47:16. Aval Bal Rs.27000.00 CR. Helpline 18001800/18002021-PNB",
+        "PNB", Direction.DEBIT, 500_000, "1234", source = PW,
+    ),
+    Fixture(
+        "PNB.credit.v1", "VM-PNBSMS-S",
+        "Ac XXXXXXXX11927 Credited with Rs.78000.00 , 28-03-2023 15:04:12. Aval Bal Rs.78000.00 CR. Helpline 18001802222.Register for e-statement,if not done.-PNB",
+        "PNB", Direction.CREDIT, 7_800_000, "11927", source = SMARTEX,
+    ),
+
+    // ----- Canara -----
+    Fixture(
+        "CANARA.debit.v1", "VM-CANBNK",
+        "An amount of INR 3,000.00 has been DEBITED to your account XXXX0541 on 30/01/2023. Total Avail.bal INR 3,202.20. - Canara Bank",
+        "CANARA", Direction.DEBIT, 300_000, "0541", source = SMARTEX,
+    ),
+    Fixture(
+        "CANARA.credit.v1", "VM-CANBNK",
+        "An amount of INR 1,000.00 has been CREDITED to your account XXXX2184 on 06/01/2023.Total Avail.bal INR 6,868.58.- Canara Bank",
+        "CANARA", Direction.CREDIT, 100_000, "2184", source = SMARTEX,
+    ),
+
+    // ----- Bank of Maharashtra -----
+    Fixture(
+        "BOM.debit_upi.v1", "VK-MAHABK",
+        "Your A/c No xxxx1780 debited by Rs.150.00 on 26-JAN-2022 with UPI RRN:202634368140. A/c Bal is Rs. 29,344.15 CR and AVL Bal is Rs. 29,226.15 CR-MAHABANK",
+        "BOM", Direction.DEBIT, 15_000, "1780", source = SMARTEX,
+    ),
+    Fixture(
+        "BOM.debit_general.v1", "VK-MAHABK",
+        "Your A/c No xxxx1780 has been debited by Rs. 1,500.00 on 02-FEB-2022 via 00306031/652155XXXXXX7756/203312012944. A/c No xxxx1780 Bal is Rs. 24,044.15 CR and AVL Bal is Rs. 23,926.15-MAHABANK",
+        "BOM", Direction.DEBIT, 150_000, "1780", source = SMARTEX,
+    ),
+
+    // ----- Central Bank of India -----
+    Fixture(
+        "CENTRALBANK.debit.v1", "VM-CBOSMS",
+        "A/c 3XXXXX0208 debited by Rs. 15 Total Bal: Rs.  1,826.45 CR Clr Bal: Rs. 1,826.45 CR. Never share OTP/Password for EMI postponement or any reason.-CBoI",
+        "CENTRALBANK", Direction.DEBIT, 1_500, "0208", source = METIS,
+    ),
+    Fixture(
+        "CENTRALBANK.credit.v1", "VM-CBOSMS",
+        "A/c 3XXXXX0208 credited by Rs. 1 Total Bal: Rs.  1.00 CR Clr Bal: Rs. 1.00 CR. Never share OTP/Password for EMI postponement or any reason.-CBoI",
+        "CENTRALBANK", Direction.CREDIT, 100, "0208", source = METIS,
+    ),
+
+    // ----- Indian Overseas Bank -----
+    Fixture(
+        "IOB.debit_payee.v1", "VM-IOBBNK",
+        "Your a/c XXXXXXXXXX7768 debited for payee K  MANOJKUMAR for Rs. 250.00 on 2023-04-26, ref 311643329121.If not you, report to your bank immediately-IOB.",
+        "IOB", Direction.DEBIT, 25_000, "7768", payee = "K  MANOJKUMAR", source = SMARTEX,
+    ),
+
+    // ----- UCO Bank -----
+    Fixture(
+        "UCO.credit.v1", "VM-UCOBNK",
+        "A/c XX4544 Credited with Rs. 288.00 on 11-02-2023 by UCO-IMPS.Avl Bal Rs.1,158.83.Report Dispute-https://bit.ly/3y39tLP",
+        "UCO", Direction.CREDIT, 28_800, "4544", source = SMARTEX,
+    ),
+    Fixture(
+        "UCO.debit.v1", "VM-UCOBNK",
+        "Your UCO Bank A/c XX3138 has been Debited with Rs.500.00 on 12-02-2023. Avl Bal Rs.5,250.00.",
+        "UCO", Direction.DEBIT, 50_000, "3138", source = PW,
+    ),
+
+    // ----- Punjab & Sind Bank -----
+    Fixture(
+        "PSB.debit.v1", "VM-PSBANK",
+        "A/c No **1234 Debited with Rs 500.00--UPI/DR/1234567890/Merchant (CLR BAL 2500.00CR)(20-02-2026 12:00:00)-Punjab&Sind Bank",
+        "PSB", Direction.DEBIT, 50_000, "1234", source = PW,
+    ),
+    Fixture(
+        "PSB.credit.v1", "VM-PSBANK",
+        "A/c No **1234 Credited with Rs 1000.00--NEFT/123456/Sender (CLR BAL 3500.00CR)(20-02-2026 12:00:00)-Punjab&Sind Bank",
+        "PSB", Direction.CREDIT, 100_000, "1234", source = PW,
+    ),
+
+    // ----- City Union Bank -----
+    Fixture(
+        "CUB.debit_upi.v1", "JK-CUBLTD-S",
+        "Your a/c no. XXXXXXXXXXXX1234 is debited for Rs.111.00 on 01-09-2025 and credited to a/c no. YYYYYYYYYYYYYYY (UPI Ref no 123456789012)",
+        "CUB", Direction.DEBIT, 11_100, "1234", source = PW,
+    ),
+    Fixture(
+        "CUB.credit_neft.v1", "JK-CUBLTD-S",
+        "Savings No XXXXXXXXXXXX1234 credited with INR 111.00 towards BY NEFT TRF:AMBANI YYYYYYYYYYYYYYY: on 01-SEP-2025. Avl Bal 120.00",
+        "CUB", Direction.CREDIT, 11_100, "1234", source = PW,
+    ),
+
+    // ----- Karnataka Bank -----
+    Fixture(
+        "KARNATAKA.debit.v1", "VM-KBLBNK-S",
+        "Your Account x001234x has been DEBITED for Rs.6368.00 on 15-08-2025",
+        "KARNATAKA", Direction.DEBIT, 636_800, "001234", source = PW,
+    ),
+    Fixture(
+        "KARNATAKA.credit.v1", "VM-KBLBNK-S",
+        "Your a/c XX1234 is credited by Rs.6600.00 on 16-08-2025",
+        "KARNATAKA", Direction.CREDIT, 660_000, "1234", source = PW,
+    ),
+
+    // ----- India Post Payments Bank -----
+    Fixture(
+        "IPPB.debit.v1", "VM-IPBMSG",
+        "Your A/C X1234 debited by Rs. 100.00 on 15-08-25. Avl Bal Rs. 500.00",
+        "IPPB", Direction.DEBIT, 10_000, "1234", source = PW,
+    ),
+    Fixture(
+        "IPPB.credit.v1", "VM-IPBMSG",
+        "Your A/C X1234 credited with Rs. 500.00 on 15-08-25. Avl Bal Rs. 600.00",
+        "IPPB", Direction.CREDIT, 50_000, "1234", source = PW,
+    ),
+
+    // ----- HSBC -----
+    Fixture(
+        "HSBC.card_spend.v1", "VM-HSBCIN",
+        "Your HSBC Credit Card ending with 4433 was charged for INR 2,450.00 on 15-04-2016 at BOOKMYSHOW.",
+        "HSBC", Direction.DEBIT, 245_000, "4433", payee = "BOOKMYSHOW", isCard = true, source = ELEMENTORA,
+    ),
+
+    // ----- AMEX -----
+    Fixture(
+        "AMEX.card_spend.v1", "VM-AMEXIN",
+        "You've spent INR 1,200.00 on your Amex Card ending 1005 at UBER INDIA on 12-Jan-2026.",
+        "AMEX", Direction.DEBIT, 120_000, "1005", payee = "UBER INDIA", isCard = true, source = CARDS,
+    ),
 )
 
 /**
@@ -449,5 +592,20 @@ val NEGATIVE_FIXTURES: List<NegativeFixture> = listOf(
         "USD 11.80 spent using ICICI Bank Card XX7004 on 03-Sep-25 on 1xJetBrains AI . " +
             "Avl Limit: INR 17,95,899.53. If not you, call 1800 2662/SMS BLOCK 7004 to 9215676766.",
         "a foreign-currency spend must not be booked as rupees",
+    ),
+    NegativeFixture(
+        "VM-PNBSMS-S",
+        "Your one time password(OTP) for debit transaction of Amount 5721 INR is 208869 which is valid for 5min from now.Please do not share your OTP with anyone-PNB",
+        "an OTP quoting the amount it authorises",
+    ),
+    NegativeFixture(
+        "VM-PNBSMS-S",
+        "Dear Customer, PNB has received your Personal Loan request with Application ID: PAPL/163100/429898. If it's not done by you contact on 18001802222/18001032222.",
+        "a loan request notice, not a transaction",
+    ),
+    NegativeFixture(
+        "AX-ICICIT-S",
+        "Dear Customer Your ICICI Credit Card Points Worth Rs.5854 Will Expire By Tomorrow Kindly Redeem Points In Cash By Click Here hxxps://bit.ly/3oiCdNV CSHBACK",
+        "smishing phishing impersonating reward points cash redemption",
     ),
 )

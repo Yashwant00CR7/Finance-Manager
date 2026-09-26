@@ -40,14 +40,13 @@ package com.yk.finance.parser
  */
 
 // Masking is not standardised at all: "XX742", "*8317", "XXXXXXXXXX1234", "x2451",
-// "...5494", "(6089)". Only the digits matter, so the decoration is consumed and dropped.
-private const val MASK = """[Xx*.]*"""
+// "...5494", "(6089)", "3XXXXX0208", "x001234x". Only the digits matter, so the decoration is consumed and dropped.
+private const val ACCT = """(?:[0-9]*[Xx*.]+)*(?<acct>\d{3,})[Xx*.]*"""
 
 private const val A = """(?<amount>[0-9][0-9,]*(?:\.\d{1,2})?)"""
-private const val ACCT = """$MASK(?<acct>\d{3,})"""
 
-/** Dates seen in the wild: 07/01/26, 13Sep25, 09-Jun-26, 24JUN2026, 30 AUG 2026, 17-07-26. */
-private const val DATE = """(?<date>\d{1,2}[-/ ]?[A-Za-z]{3}[-/ ]?\d{2,4}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})"""
+/** Dates seen in the wild: 2023-04-26, 07/01/26, 13Sep25, 09-Jun-26, 24JUN2026, 30 AUG 2026, 17-07-26. */
+private const val DATE = """(?<date>\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/ ]?[A-Za-z]{3}[-/ ]?\d{2,4}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})"""
 private const val TIME = """(?<time>\d{1,2}:\d{2}(?::\d{2})?)"""
 
 private fun ci(pattern: String) = Regex(pattern, RegexOption.IGNORE_CASE)
@@ -85,6 +84,18 @@ private val HDFC = listOf(
         // "Update! INR 1.00 deposited in HDFC Bank A/c XX9999 on 30-MAR-26 for NEFT Cr-...Avl bal INR 8.00."
         regex = ci("""$CURRENCY\s*$A\s+deposited\s+in\s+HDFC\s+Bank\s+A/c\s+$ACCT\s+on\s+$DATE"""),
         evidence = "$DOC - pennywiseai TestHDFCBankParser.kt",
+    ),
+    PatternSpec(
+        id = "HDFC.card_spend_elementora.v1",
+        bank = "HDFC",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Rs.376.70 was spent on ur HDFCBank CREDIT Card ending 3215 on 2016-04-03:11:37:20 at APOLLO PHARMACY.Avl bal - Rs.576628.30, curr o/s - Rs.23371.70"
+        // Note: Avl bal is credit limit, not account balance. See docs/bank-sms-formats.md.
+        regex = ci("""$CURRENCY\s*$A\s+was\s+spent\s+on\s+ur\s+HDFCBank\s+CREDIT\s+Card\s+ending\s+$ACCT(?:\s+on\s+$DATE(?::$TIME)?)?\s+at\s+(?<payee>.+?)\s*\.\s*Avl\s+bal"""),
+        balanceMeaning = BalanceMeaning.AVAILABLE_CREDIT,
+        isCard = true,
+        evidence = "$DOC - sskadit/elementora real inbox dump",
     ),
 )
 
@@ -625,6 +636,294 @@ private val ICICI_RESEARCHED = listOf(
         isCard = true,
         evidence = "$DOC - pennywiseai TestICICIBankParser.kt",
     ),
+    PatternSpec(
+        id = "ICICI.credit_card_spend.v1",
+        bank = "ICICI",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "ICICI Bank Credit Card XX2003 debited for Rs 450.00 on 12-Jan-26; DOMINOS credited. Avl Lmt: Rs 1,45,000.00."
+        regex = ci("""ICICI\s+Bank\s+Credit\s+Card\s+$ACCT\s+debited\s+for\s+$CURRENCY\s*$A\s+on\s+$DATE;\s*(?<payee>.+?)\s+credited\.\s*Avl\s+Lmt"""),
+        balanceMeaning = BalanceMeaning.AVAILABLE_CREDIT,
+        isCard = true,
+        evidence = "$DOC - Indian CARD transaction SMS evidence file",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// Punjab National Bank (PNB)
+// ---------------------------------------------------------------------------------------
+
+private val PNB = listOf(
+    PatternSpec(
+        id = "PNB.debit.v1",
+        bank = "PNB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Ac XX1234 Debited with Rs.5000.00, 20-02-2026 07:47:16. Aval Bal Rs.27000.00 CR. Helpline 18001800/18002021-PNB"
+        regex = ci("""Ac\s+$ACCT\s+[Dd]ebited\s+with\s+$CURRENCY\s*$A,\s*$DATE(?:\s+$TIME)?\.\s*Aval\s+Bal"""),
+        evidence = "$DOC - pennywiseai PNBBankParserTest.kt",
+    ),
+    PatternSpec(
+        id = "PNB.credit.v1",
+        bank = "PNB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "Ac XXXXXXXX11927 Credited with Rs.78000.00 , 28-03-2023 15:04:12. Aval Bal Rs.78000.00 CR. Helpline 18001802222.Register for e-statement,if not done.-PNB"
+        regex = ci("""(?:Your\s+a/c\s+no\s+|Ac\s+)$ACCT\s+(?:is\s+)?[Cc]redited\s+(?:by|with)\s+$CURRENCY\s*$A(?:\s*,\s*$DATE)?"""),
+        evidence = "$DOC - smartex-bank.csv real inbox dump",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// Canara Bank
+// ---------------------------------------------------------------------------------------
+
+private val CANARA = listOf(
+    PatternSpec(
+        id = "CANARA.debit.v1",
+        bank = "CANARA",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "An amount of INR 3,000.00 has been DEBITED to your account XXXX0541 on 30/01/2023. Total Avail.bal INR 3,202.20. - Canara Bank"
+        regex = ci("""An\s+amount\s+of\s+$CURRENCY\s*$A\s+has\s+been\s+DEBITED\s+to\s+your\s+account\s+$ACCT\s+on\s+$DATE"""),
+        evidence = "$DOC - smartex-bank.csv real inbox dump",
+    ),
+    PatternSpec(
+        id = "CANARA.credit.v1",
+        bank = "CANARA",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "An amount of INR 1,000.00 has been CREDITED to your account XXXX2184 on 06/01/2023.Total Avail.bal INR 6,868.58.- Canara Bank"
+        regex = ci("""An\s+amount\s+of\s+$CURRENCY\s*$A\s+has\s+been\s+CREDITED\s+to\s+your\s+account\s+$ACCT\s+on\s+$DATE"""),
+        evidence = "$DOC - smartex-bank.csv real inbox dump",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// Bank of Maharashtra (MAHABANK / BOM)
+// ---------------------------------------------------------------------------------------
+
+private val BOM = listOf(
+    PatternSpec(
+        id = "BOM.debit_upi.v1",
+        bank = "BOM",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your A/c No xxxx1780 debited by Rs.150.00 on 26-JAN-2022 with UPI RRN:202634368140. A/c Bal is Rs. 29,344.15 CR and AVL Bal is Rs. 29,226.15 CR-MAHABANK"
+        regex = ci("""Your\s+A/c\s+No\s+$ACCT\s+debited\s+by\s+$CURRENCY\s*$A\s+on\s+$DATE\s+with\s+UPI"""),
+        evidence = "$DOC - smartex-bank.csv real inbox dump",
+    ),
+    PatternSpec(
+        id = "BOM.debit_general.v1",
+        bank = "BOM",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your A/c No xxxx1780 has been debited by Rs. 1,500.00 on 02-FEB-2022 via 00306031/652155XXXXXX7756/203312012944. A/c No xxxx1780 Bal is Rs. 24,044.15 CR and AVL Bal is Rs. 23,926.15-MAHABANK"
+        regex = ci("""Your\s+A/c\s+No\s+$ACCT\s+has\s+been\s+debited\s+by\s+$CURRENCY\s*$A\s+on\s+$DATE"""),
+        evidence = "$DOC - smartex-bank.csv real inbox dump",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// Central Bank of India (CBoI / CENTRALBANK)
+// ---------------------------------------------------------------------------------------
+
+private val CENTRAL_BANK = listOf(
+    PatternSpec(
+        id = "CENTRALBANK.debit.v1",
+        bank = "CENTRALBANK",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "A/c 3XXXXX0208 debited by Rs. 15 Total Bal: Rs.  1,826.45 CR Clr Bal: Rs. 1,826.45 CR. Never share OTP/Password for EMI postponement or any reason.-CBoI"
+        regex = ci("""A/c\s+$ACCT\s+debited\s+by\s+$CURRENCY\s*$A\s+Total\s+Bal"""),
+        evidence = "$DOC - metis.csv and pennywiseai TestCentralBankOfIndiaParser.kt",
+    ),
+    PatternSpec(
+        id = "CENTRALBANK.credit.v1",
+        bank = "CENTRALBANK",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "A/c 3XXXXX0208 credited by Rs. 1 Total Bal: Rs.  1.00 CR Clr Bal: Rs. 1.00 CR. Never share OTP/Password for EMI postponement or any reason.-CBoI"
+        regex = ci("""A/c\s+$ACCT\s+credited\s+by\s+$CURRENCY\s*$A\s+Total\s+Bal"""),
+        evidence = "$DOC - metis.csv and pennywiseai TestCentralBankOfIndiaParser.kt",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// Indian Overseas Bank (IOB)
+// ---------------------------------------------------------------------------------------
+
+private val IOB = listOf(
+    PatternSpec(
+        id = "IOB.debit_payee.v1",
+        bank = "IOB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your a/c XXXXXXXXXX7768 debited for payee K  MANOJKUMAR for Rs. 250.00 on 2023-04-26, ref 311643329121.If not you, report to your bank immediately-IOB."
+        regex = ci("""Your\s+a/c\s+$ACCT\s+debited\s+for\s+payee\s+(?<payee>.+?)\s+for\s+$CURRENCY\s*$A\s+on\s+$DATE"""),
+        evidence = "$DOC - smartex-bank.csv real inbox dump",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// UCO Bank
+// ---------------------------------------------------------------------------------------
+
+private val UCO = listOf(
+    PatternSpec(
+        id = "UCO.credit.v1",
+        bank = "UCO",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "A/c XX4544 Credited with Rs. 288.00 on 11-02-2023 by UCO-IMPS.Avl Bal Rs.1,158.83.Report Dispute-https://bit.ly/3y39tLP"
+        regex = ci("""(?:Your\s+UCO\s+Bank\s+)?A/c\s+$ACCT\s+(?:has\s+been\s+)?[Cc]redited\s+with\s+$CURRENCY\s*$A(?:\s+on\s+$DATE)?"""),
+        evidence = "$DOC - smartex-bank.csv real inbox dump",
+    ),
+    PatternSpec(
+        id = "UCO.debit.v1",
+        bank = "UCO",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your UCO Bank A/c XX3138 has been Debited with Rs.500.00 on 12-02-2023. Avl Bal Rs.5,250.00."
+        regex = ci("""(?:Your\s+UCO\s+Bank\s+)?A/c\s+$ACCT\s+(?:has\s+been\s+)?[Dd]ebited\s+with\s+$CURRENCY\s*$A(?:\s+on\s+$DATE)?"""),
+        evidence = "$DOC - UCOBankParser.kt and smartex-bank.csv",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// Punjab & Sind Bank (PSB)
+// ---------------------------------------------------------------------------------------
+
+private val PSB = listOf(
+    PatternSpec(
+        id = "PSB.debit.v1",
+        bank = "PSB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "A/c No **1234 Debited with Rs 500.00--UPI/DR/1234567890/Merchant (CLR BAL 2500.00CR)(20-02-2026 12:00:00)-Punjab&Sind Bank"
+        regex = ci("""A/c\s+No\s+$ACCT\s+Debited\s+with\s+$CURRENCY\s*$A--"""),
+        evidence = "$DOC - PunjabSindBankParser.kt",
+    ),
+    PatternSpec(
+        id = "PSB.credit.v1",
+        bank = "PSB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "A/c No **1234 Credited with Rs 1000.00--NEFT/123456/Sender (CLR BAL 3500.00CR)(20-02-2026 12:00:00)-Punjab&Sind Bank"
+        regex = ci("""A/c\s+No\s+$ACCT\s+Credited\s+with\s+$CURRENCY\s*$A--"""),
+        evidence = "$DOC - PunjabSindBankParser.kt",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// City Union Bank (CUB)
+// ---------------------------------------------------------------------------------------
+
+private val CUB = listOf(
+    PatternSpec(
+        id = "CUB.debit_upi.v1",
+        bank = "CUB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your a/c no. XXXXXXXXXXXX1234 is debited for Rs.111.00 on 01-09-2025 and credited to a/c no. YYYYYYYYYYYYYYY (UPI Ref no 123456789012)"
+        regex = ci("""Your\s+a/c\s+no\.?\s+$ACCT\s+is\s+debited\s+for\s+$CURRENCY\s*$A\s+on\s+$DATE"""),
+        evidence = "$DOC - CityUnionBankParser.kt",
+    ),
+    PatternSpec(
+        id = "CUB.credit_neft.v1",
+        bank = "CUB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "Savings No XXXXXXXXXXXX1234 credited with INR 111.00 towards BY NEFT TRF:AMBANI YYYYYYYYYYYYYYY: on 01-SEP-2025. Avl Bal 120.00"
+        regex = ci("""(?:Your\s+a/c\s+no\.?|Savings\s+No)\s+$ACCT\s+(?:is\s+)?credited\s+(?:for|with)\s+$CURRENCY\s*$A"""),
+        evidence = "$DOC - CityUnionBankParser.kt",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// Karnataka Bank (KARNATAKA)
+// ---------------------------------------------------------------------------------------
+
+private val KARNATAKA = listOf(
+    PatternSpec(
+        id = "KARNATAKA.debit.v1",
+        bank = "KARNATAKA",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your Account x001234x has been DEBITED for Rs.6368.00 on 15-08-2025"
+        regex = ci("""Your\s+Account\s+$ACCT\s+has\s+been\s+DEBITED\s+for\s+$CURRENCY\s*$A"""),
+        evidence = "$DOC - KarnatakaBankParser.kt",
+    ),
+    PatternSpec(
+        id = "KARNATAKA.credit.v1",
+        bank = "KARNATAKA",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "Your a/c XX1234 is credited by Rs.6600.00 on 16-08-2025"
+        regex = ci("""Your\s+a/c\s+$ACCT\s+is\s+credited\s+by\s+$CURRENCY\s*$A"""),
+        evidence = "$DOC - KarnatakaBankParser.kt",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// India Post Payments Bank (IPPB)
+// ---------------------------------------------------------------------------------------
+
+private val IPPB = listOf(
+    PatternSpec(
+        id = "IPPB.debit.v1",
+        bank = "IPPB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your A/C X1234 debited by Rs. 100.00 on 15-08-25. Avl Bal Rs. 500.00"
+        regex = ci("""Your\s+A/C\s+$ACCT\s+debited\s+by\s+$CURRENCY\s*$A"""),
+        evidence = "$DOC - IPPBParser.kt",
+    ),
+    PatternSpec(
+        id = "IPPB.credit.v1",
+        bank = "IPPB",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "Your A/C X1234 credited with Rs. 500.00 on 15-08-25. Avl Bal Rs. 600.00"
+        regex = ci("""Your\s+A/C\s+$ACCT\s+credited\s+with\s+$CURRENCY\s*$A"""),
+        evidence = "$DOC - IPPBParser.kt",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// HSBC Bank India
+// ---------------------------------------------------------------------------------------
+
+private val HSBC = listOf(
+    PatternSpec(
+        id = "HSBC.card_spend.v1",
+        bank = "HSBC",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "Your HSBC Credit Card ending with 4433 was charged for INR 2,450.00 on 15-04-2016 at BOOKMYSHOW."
+        regex = ci("""Your\s+HSBC\s+Credit\s+Card\s+ending\s+with\s+$ACCT\s+was\s+charged\s+for\s+$CURRENCY\s*$A\s+on\s+$DATE(?:\s+at\s+(?<payee>.+?))?\s*\."""),
+        balanceMeaning = BalanceMeaning.AVAILABLE_CREDIT,
+        isCard = true,
+        evidence = "$DOC - sskadit/elementora real inbox dump",
+    ),
+)
+
+// ---------------------------------------------------------------------------------------
+// American Express India (AMEX)
+// ---------------------------------------------------------------------------------------
+
+private val AMEX = listOf(
+    PatternSpec(
+        id = "AMEX.card_spend.v1",
+        bank = "AMEX",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "You've spent INR 1,200.00 on your Amex Card ending 1005 at UBER INDIA on 12-Jan-2026."
+        regex = ci("""You(?:'ve|\s+have)\s+spent\s+$CURRENCY\s*$A\s+on\s+your\s+Amex\s+Card\s+ending\s+$ACCT\s+at\s+(?<payee>.+?)\s+on\s+$DATE"""),
+        balanceMeaning = BalanceMeaning.AVAILABLE_CREDIT,
+        isCard = true,
+        evidence = "$DOC - Indian CARD transaction SMS evidence file",
+    ),
 )
 
 /**
@@ -636,7 +935,8 @@ private val ICICI_RESEARCHED = listOf(
  */
 val RESEARCHED_PATTERNS: List<PatternSpec> =
     HDFC + AXIS + KOTAK + SBI + INDUSIND + YES + BOB + BOI + INDIAN_BANK +
-        AU + EQUITAS + IDFC + FEDERAL + RBL + BANDHAN + IDBI + SIB + ICICI_RESEARCHED
+        AU + EQUITAS + IDFC + FEDERAL + RBL + BANDHAN + IDBI + SIB + ICICI_RESEARCHED +
+        PNB + CANARA + BOM + CENTRAL_BANK + IOB + UCO + PSB + CUB + KARNATAKA + IPPB + HSBC + AMEX
 
 // ---------------------------------------------------------------------------------------
 // The generic tier
