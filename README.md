@@ -5,7 +5,7 @@
 **Your bank already texts you every time money moves.
 This app just listens.**
 
-[![version](https://img.shields.io/badge/version-2.6.0-5E35B1)](#)
+[![version](https://img.shields.io/badge/version-2.7.0-5E35B1)](#)
 [![platform](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](#)
 [![kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](#)
 [![compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)](#)

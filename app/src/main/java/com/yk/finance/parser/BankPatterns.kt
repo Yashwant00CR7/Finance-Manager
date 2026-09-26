@@ -562,6 +562,71 @@ private val SIB = listOf(
     ),
 )
 
+// ---------------------------------------------------------------------------------------
+// ICICI - the shapes beyond the two the author receives
+//
+// IciciRule in BankRules.kt covers the UPI debit and credit that arrive on this phone, and
+// books them without asking. Everything below came out of a public corpus, so it sits at the
+// researched tier like any other stranger's sample. Between them they also settle a question
+// that had been open in the code: ICICI's ATM wording, previously a guess.
+// ---------------------------------------------------------------------------------------
+
+private val ICICI_RESEARCHED = listOf(
+    PatternSpec(
+        id = "ICICI.acc_debit.v1",
+        bank = "ICICI",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // Four real shapes, one sentence between them - ATM withdrawals, ACH mandates and
+        // bill debits all use it, differing only in the token after the date:
+        //   "ICICI Bank Acc XX921 debited Rs. 10,000.00 on 20-Jan-26 NFSCASH WDL. Avb Bal Rs. 3,943.84."
+        //   "ICICI Bank Account XX123 debited Rs. 5,000.00 on 19-May-26 InfoACH*BD-ACHKFL.Avl Bal Rs. 3,25,000.04."
+        //   "ICICI Bank Acc XX611 debited Rs. 6,500.00 on 19-Jun-26 CAM*62712SRY*. Avb Bal Rs. 10,079.44."
+        //   "ICICI Bank Acc XX342 debited Rs. 8,927.00 on 07-Jun-26 InfoBIL*Auto Loan.Avl Bal Rs. 1,248.78."
+        // Note "Acc"/"Account", never "Acct" - which is what the deleted guess got wrong.
+        regex = ci("""ICICI\s+Bank\s+Acc(?:ount)?\s+$ACCT\s+debited\s+$CURRENCY\s*$A\s+on\s+$DATE\s+(?<payee>[^.]+?)\s*\.\s*Av"""),
+        evidence = "$DOC - pennywiseai TestICICIBankParser.kt, four independent samples",
+    ),
+    PatternSpec(
+        id = "ICICI.account_credit.v1",
+        bank = "ICICI",
+        tier = Tier.RESEARCHED,
+        direction = Direction.CREDIT,
+        // "ICICI Bank Account XX566 credited:Rs. 18,832.00 on 28-Feb-25. Info INF*000169831922*IQBO SAL FE. Available Balance is Rs. 28,076.14."
+        // The Info field is where a salary credit identifies itself, so it is worth keeping.
+        regex = ci("""ICICI\s+Bank\s+Account\s+$ACCT\s+credited:\s*$CURRENCY\s*$A\s+on\s+$DATE\.\s*Info\s+(?<payee>[^.]+?)\s*\."""),
+        evidence = "$DOC - pennywiseai TestICICIBankParser.kt, three independent samples",
+    ),
+    PatternSpec(
+        id = "ICICI.own_transfer_debit.v1",
+        bank = "ICICI",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "ICICI Bank Acct XX123 debited with Rs 10 on 20-Dec-25 & Acct XX456 credited.IMPS:ABCDEF123456."
+        // Two of the user's own accounts in one sentence. Direction is fixed to the first,
+        // which is the one this message is addressed about; the counterpart arrives, if at
+        // all, as its own message and is paired by TransferResolver on the shared reference.
+        regex = ci("""ICICI\s+Bank\s+Acct\s+$ACCT\s+(?:is\s+)?debited\s+with\s+$CURRENCY\s*$A(?:\s+on\s+$DATE)?\s*(?:&|and)\s*Acct"""),
+        evidence = "$DOC - pennywiseai TestICICIBankParser.kt, three independent samples",
+    ),
+    PatternSpec(
+        id = "ICICI.card_spend.v1",
+        bank = "ICICI",
+        tier = Tier.RESEARCHED,
+        direction = Direction.DEBIT,
+        // "INR 500.00 spent using ICICI Bank Card XX5678 on 06-Sep-25 on Swiggy. Avl Limit: INR 1,50,000.00."
+        //
+        // Only rupees. The same template carries foreign spends - "USD 11.80 spent using ICICI
+        // Bank Card XX7004 ... Avl Limit: INR 17,95,899.53" - where the amount and the limit
+        // are in different currencies. Matching those would book 11.80 rupees for an 11.80
+        // dollar purchase, so they are deliberately left to fall through to the tray.
+        regex = ci("""$CURRENCY\s*$A\s+spent\s+using\s+ICICI\s+Bank\s+Card\s+$ACCT\s+on\s+$DATE\s+on\s+(?<payee>.+?)\s*\.\s*Av"""),
+        balanceMeaning = BalanceMeaning.AVAILABLE_CREDIT,
+        isCard = true,
+        evidence = "$DOC - pennywiseai TestICICIBankParser.kt",
+    ),
+)
+
 /**
  * Every researched pattern, in the order they are tried.
  *
@@ -571,7 +636,7 @@ private val SIB = listOf(
  */
 val RESEARCHED_PATTERNS: List<PatternSpec> =
     HDFC + AXIS + KOTAK + SBI + INDUSIND + YES + BOB + BOI + INDIAN_BANK +
-        AU + EQUITAS + IDFC + FEDERAL + RBL + BANDHAN + IDBI + SIB
+        AU + EQUITAS + IDFC + FEDERAL + RBL + BANDHAN + IDBI + SIB + ICICI_RESEARCHED
 
 // ---------------------------------------------------------------------------------------
 // The generic tier

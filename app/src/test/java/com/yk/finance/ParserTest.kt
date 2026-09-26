@@ -163,32 +163,11 @@ class ParserTest {
         assertTrue("junk must be dropped, not queued", result is ParseResult.Ignored)
     }
 
-    // ---------- ATM: synthetic format, real keywords ----------
-
-    @Test
-    fun `ATM withdrawal is detected by channel keywords`() {
-        val sms = parsed(
-            icici,
-            "Dear Customer, Acct XX742 is debited with Rs 5000.00 on 18-Sep-26. Info: ATM-CASH WDL. " +
-                "Avl Bal: Rs 12340.00",
-        )
-        assertNotNull("synthetic ATM format - correct on first real sample", sms)
-        assertEquals(Direction.DEBIT, sms!!.direction)
-        assertEquals(500000L, sms.amountPaise)
-        assertEquals("ATM must be detected so it becomes a transfer, not spending", Channel.ATM, sms.channel)
-    }
-
-    @Test
-    fun `a message that never names its bank is still claimed via the sender header`() {
-        // The ATM sample above names no bank in the body. Identifying banks by body
-        // text alone would ignore it entirely - the DLT header is what claims it.
-        val result = parser.parse(
-            icici,
-            "Dear Customer, Acct XX742 is debited with Rs 5000.00 on 18-Sep-26. Info: ATM-CASH WDL.",
-            now,
-        )
-        assertTrue(result is ParseResult.Parsed)
-    }
+    // ATM used to be covered here by an invented ICICI format. Real ATM samples turned up
+    // during the multi-bank work and showed the guess was wrong, so both the pattern and the
+    // tests that propped it up were deleted rather than adjusted. This file is for messages
+    // that actually arrived on this phone; the real ICICI ATM alert is third-party evidence
+    // and is asserted in BankFixtureTest instead.
 
     @Test
     fun `amount parsing keeps paise exactly`() {

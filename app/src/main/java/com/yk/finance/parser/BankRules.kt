@@ -39,7 +39,16 @@ interface BankRule {
  * ("SRI LAKSHMI TRA", "KA 05 JUICE BAR"). The truncation is stable, so category
  * rules keyed on the truncated string still work.
  *
- * ICICI sends NO available balance. See ReconcileState for how that is handled.
+ * ICICI sends NO available balance on these two shapes. See ReconcileState for how that is
+ * handled. Its other formats - ATM withdrawals, ACH debits, salary credits - do carry one,
+ * and they live in BankPatterns.kt at the researched tier because the samples behind them
+ * came from a public corpus rather than from this phone.
+ *
+ * There used to be a third rule here, a guess at ICICI's "is debited with" ATM wording that
+ * no real message had ever confirmed. Real ATM samples turned up during the multi-bank work
+ * and the guess was wrong twice over: ICICI writes "Acc" rather than "Acct" for these, and
+ * puts no "is" or "for" before "debited". It has been deleted rather than corrected, because
+ * a corrected guess is still a guess.
  */
 object IciciRule : BankRule {
     override val bank = "ICICI"
@@ -59,14 +68,6 @@ object IciciRule : BankRule {
         RegexOption.IGNORE_CASE,
     )
 
-    // SYNTHETIC - no real sample. ICICI's ATM/other debits are believed to use
-    // "is debited with". If your first real ATM message does not match, it lands in
-    // the review tray (never lost) and this one line is what needs correcting.
-    private val DEBIT_WITH_SYNTHETIC = Regex(
-        """Acct\s+XX(\d+)\s+(?:is|has been)\s+debited\s+with\s+(?:Rs|INR)\.?:?\s*$AMT\s+on\s+(\d{1,2}-[A-Za-z]{3}-\d{2})""",
-        RegexOption.IGNORE_CASE,
-    )
-
     // Payee sits before " credited" on debits, after " from " on credits.
     private val PAYEE_DEBIT = Regex(""";\s*(.+?)\s+credited""", RegexOption.IGNORE_CASE)
     private val PAYEE_CREDIT = Regex("""\bfrom\s+([^.;]+?)\s*[.;]""", RegexOption.IGNORE_CASE)
@@ -81,7 +82,6 @@ object IciciRule : BankRule {
         val (match, direction) =
             DEBIT_FOR.find(body)?.let { it to Direction.DEBIT }
                 ?: CREDIT_WITH.find(body)?.let { it to Direction.CREDIT }
-                ?: DEBIT_WITH_SYNTHETIC.find(body)?.let { it to Direction.DEBIT }
                 ?: return null
 
         val amount = parseAmountToPaise(match.groupValues[2]) ?: return null

@@ -226,6 +226,41 @@ class BankFixtureTest {
         )
     }
 
+    /**
+     * The other half of the ATM question, and the reason the deleted guess mattered.
+     *
+     * An ATM withdrawal has to be recognised as one, because the ingestor turns it into a
+     * transfer to the Cash wallet rather than spending - cash taken out is money moved, not
+     * money gone. ICICI's real wording for this was never confirmed until now.
+     */
+    @Test
+    fun `a real ATM withdrawal is recognised as a cash movement`() {
+        val f = BANK_FIXTURES.first { it.patternId == "ICICI.acc_debit.v1" }
+        val sms = parse(f.sender, f.body)
+        assertNotNull(sms)
+        assertEquals(Channel.ATM, sms!!.channel)
+        assertTrue(
+            "cash out of a machine is a transfer to the Cash wallet, not spending",
+            TransferResolver.isCashWithdrawal(sms),
+        )
+    }
+
+    /**
+     * A message that names no bank anywhere in its text is still claimed, by its header.
+     *
+     * Identifying banks from body text alone would drop these entirely, and they are common -
+     * this IDFC short form carries no bank name at all.
+     */
+    @Test
+    fun `a message that never names its bank is still claimed by its sender header`() {
+        val result = parser.parse(
+            "BM-IDFCBK-S",
+            "Your A/C XXXXXXX1234 is debited by INR 68.00 on 06/08/25 17:36. New Bal :INR 5000.00",
+            now,
+        )
+        assertTrue("the header is what claims it, got $result", result is ParseResult.Parsed)
+    }
+
     @Test
     fun `a cashback offer is still rejected`() {
         val result = parser.parse(

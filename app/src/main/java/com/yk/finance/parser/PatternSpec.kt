@@ -181,7 +181,7 @@ internal val DEFAULT_REF_PATTERNS: List<Regex> = listOf(
  * "Available balance Rs." Guessing at a label that was not observed would be inventing
  * evidence, so every alternative below comes from a message in docs/bank-sms-formats.md.
  */
-private const val AVL = """(?:Avl|Avbl|Avlbl|Avail|Available)"""
+private const val AVL = """(?:Avl|Avb|Avbl|Avlbl|Avail|Available)"""
 
 /**
  * Deliberately excludes a bare "Bal" with no currency token after it. "Min Bal", "Bal Due"

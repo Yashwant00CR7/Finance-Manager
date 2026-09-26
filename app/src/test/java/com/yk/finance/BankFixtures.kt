@@ -308,6 +308,31 @@ val BANK_FIXTURES: List<Fixture> = listOf(
             "IMPS/FDRL/528005821348/EPIFI ACCOUN. Final balance is Rs.793.02-South Indian Bank",
         "SIB", Direction.CREDIT, 79_202, "7377", payee = "EPIFI ACCOUN", source = PW,
     ),
+    // ----- ICICI, the shapes beyond the two that arrive on this phone -----
+    Fixture(
+        "ICICI.acc_debit.v1", "VM-ICICIB",
+        "ICICI Bank Acc XX921 debited Rs. 10,000.00 on 20-Jan-26 NFSCASH WDL. Avb Bal Rs. 3,943.84. " +
+            "To dispute Call 18002662 or SMS BLOCK 921 to 9215676766 .",
+        "ICICI", Direction.DEBIT, 1_000_000, "921", payee = "NFSCASH WDL", source = PW,
+    ),
+    Fixture(
+        "ICICI.account_credit.v1", "VM-ICICIB",
+        "ICICI Bank Account XX566 credited:Rs. 18,832.00 on 28-Feb-25. " +
+            "Info INF*000169831922*IQBO SAL FE. Available Balance is Rs. 28,076.14.",
+        "ICICI", Direction.CREDIT, 1_883_200, "566",
+        payee = "INF*000169831922*IQBO SAL FE", source = PW,
+    ),
+    Fixture(
+        "ICICI.own_transfer_debit.v1", "VM-ICICIB",
+        "ICICI Bank Acct XX123 debited with Rs 10 on 20-Dec-25 & Acct XX456 credited." +
+            "IMPS:ABCDEF123456. Call 18002662 for dispute or SMS BLOCK 700 to 9215676766",
+        "ICICI", Direction.DEBIT, 1_000, "123", source = PW,
+    ),
+    Fixture(
+        "ICICI.card_spend.v1", "AD-ICICTC",
+        "INR 500.00 spent using ICICI Bank Card XX5678 on 06-Sep-25 on Swiggy. Avl Limit: INR 1,50,000.00.",
+        "ICICI", Direction.DEBIT, 50_000, "5678", payee = "Swiggy", isCard = true, source = PW,
+    ),
 )
 
 /**
@@ -400,5 +425,29 @@ val NEGATIVE_FIXTURES: List<NegativeFixture> = listOf(
         "VK-FAKEBK",
         "Your A/c XX1234 is debited with Rs.49,999.00 on 01-01-26. If not you, call us.",
         "an unregistered header must not reach even the generic tier",
+    ),
+    NegativeFixture(
+        "VM-ICICIB",
+        "Payment of Rs 26,266.00 has been received on your ICICI Bank Credit Card XX9006 " +
+            "through Bharat Bill Payment System on 06-DEC-25.",
+        "a card bill being paid is not income",
+    ),
+    NegativeFixture(
+        "VM-ICICIB",
+        "ICICI BANK NEFT Transaction with reference number IN12603221231681 for Rs. 22050.00 " +
+            "has been credited to the beneficiary account on 01-02-2026 at 10:32:51",
+        "the counterparty's copy of a transfer we already recorded",
+    ),
+    NegativeFixture(
+        "VM-ICICIB",
+        "Your account will be debited with Rs 649.00 on 03-Oct-25 towards Netflix Entertainment " +
+            "Ser for AutoPay MERCHANTMANDATE, RRN 421723106963-ICICI Bank.",
+        "an autopay that has not run yet",
+    ),
+    NegativeFixture(
+        "VM-ICICIB",
+        "USD 11.80 spent using ICICI Bank Card XX7004 on 03-Sep-25 on 1xJetBrains AI . " +
+            "Avl Limit: INR 17,95,899.53. If not you, call 1800 2662/SMS BLOCK 7004 to 9215676766.",
+        "a foreign-currency spend must not be booked as rupees",
     ),
 )

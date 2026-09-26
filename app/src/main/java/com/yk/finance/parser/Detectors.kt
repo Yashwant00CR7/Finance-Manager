@@ -90,6 +90,7 @@ private val NOT_YET_HAPPENED = listOf(
     // The counterparty's copy of a transfer we have already recorded from our own side.
     // IDFC and Federal both send one minutes after the debit, carrying the same reference.
     Regex("""beneficiary\s+has\s+received""", RegexOption.IGNORE_CASE),
+    Regex("""credited\s+to\s+the\s+beneficiary""", RegexOption.IGNORE_CASE),
     Regex("""has\s+received\s+(Rs|INR|₹)[^.]{0,20}from\s+your\s+A/c""", RegexOption.IGNORE_CASE),
 )
 

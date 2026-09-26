@@ -176,7 +176,11 @@ class TransferResolverTest {
     fun `ATM withdrawal is classified as a cash movement`() {
         val sms = parse(
             "VM-ICICIB",
-            "Dear Customer, Acct XX742 is debited with Rs 5000.00 on 18-Sep-26. Info: ATM-CASH WDL.",
+            // A real ICICI ATM withdrawal. This used to be a guessed format; the guess was
+            // wrong in two ways at once - ICICI writes "Acc", not "Acct", and puts no "is"
+            // before "debited". See docs/bank-sms-formats.md.
+            "ICICI Bank Acc XX921 debited Rs. 10,000.00 on 20-Jan-26 NFSCASH WDL. " +
+                "Avb Bal Rs. 3,943.84. To dispute Call 18002662 or SMS BLOCK 921 to 9215676766 .",
         )
         assertTrue(TransferResolver.isCashWithdrawal(sms))
     }
