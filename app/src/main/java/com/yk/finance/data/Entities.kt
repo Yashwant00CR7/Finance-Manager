@@ -7,7 +7,16 @@ import androidx.room.PrimaryKey
 import com.yk.finance.parser.Channel
 import com.yk.finance.parser.Direction
 
-enum class AccountKind { BANK, CASH }
+/**
+ * What kind of thing an account is.
+ *
+ * [CREDIT_CARD] is a liability rather than an asset, and the app is deliberately careful
+ * about how far it models that. A card spend is real spending and is recorded as such, but
+ * the balance-shaped figure a card alert carries is the remaining credit limit - money the
+ * bank will lend, not money you hold - so it is never written to a balance. See the
+ * parser's BalanceMeaning.
+ */
+enum class AccountKind { BANK, CASH, CREDIT_CARD }
 
 /**
  * Where a transaction came from. ADJUSTMENT exists so a reconcile never silently
@@ -198,6 +207,36 @@ data class PendingReview(
     val rawMessage: String,
     val receivedAt: Long,
     val reason: String,
+    /**
+     * The pattern that read this message, when one did.
+     *
+     * Null keeps the original meaning of a tray entry: nothing understood this, so the
+     * fields come up blank and you type them in. A value means the opposite - a pattern
+     * the app has not yet earned your trust for produced a complete parse, and the tray
+     * shows those figures for you to accept or correct in one tap. Accepting also files
+     * the pattern in [ConfirmedPattern], so the same shape never asks twice.
+     */
+    val patternId: String? = null,
+)
+
+/**
+ * A pattern this person has seen work on their own phone.
+ *
+ * Shipped patterns come in tiers - see the parser's Tier - and only the ones derived from
+ * the author's own messages book without asking. Everything researched from a public
+ * source waits for one confirmation here, because a sample found online was real for
+ * somebody, once, and that is not the same as being right for this account today.
+ *
+ * Keyed by the pattern's stable id rather than by bank, so confirming a bank's UPI alert
+ * says nothing about its ATM alert - a different sentence, a different chance of being
+ * wrong, its own confirmation.
+ */
+@Entity(tableName = "confirmed_patterns")
+data class ConfirmedPattern(
+    @PrimaryKey val patternId: String,
+    /** Kept for display, so settings can say what was trusted without parsing ids. */
+    val bank: String,
+    val confirmedAt: Long,
 )
 
 /**

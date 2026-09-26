@@ -114,11 +114,25 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/**
+ * Schema 6: the trust store for researched bank patterns.
+ *
+ * One new table and one nullable column, nothing rewritten. Existing tray entries come
+ * through with a null `patternId`, which is exactly what they are - messages no pattern
+ * could read - so the default states a fact rather than papering over one.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        SchemaV6.STATEMENTS.forEach(db::execSQL)
+    }
+}
+
 @Database(
     entities = [
         Account::class, Txn::class, Category::class, CategoryRule::class,
         Budget::class, PendingReview::class, CycleState::class, BudgetAlert::class,
         ImportBatch::class, ImportedRow::class, CycleBoundary::class,
+        ConfirmedPattern::class,
     ],
     version = AppDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -128,7 +142,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): FinanceDao
 
     companion object {
-        const val SCHEMA_VERSION = 5
+        const val SCHEMA_VERSION = 6
         const val DB_NAME = "finance.db"
 
         @Volatile private var instance: AppDatabase? = null
@@ -142,7 +156,10 @@ abstract class AppDatabase : RoomDatabase() {
             return Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
                 // No fallbackToDestructiveMigration. A missing migration must fail loudly;
                 // silently wiping a ledger is the one outcome worse than a crash.
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+                    MIGRATION_5_6,
+                )
                 .build()
         }
 

@@ -9,6 +9,7 @@ import com.yk.finance.data.MIGRATION_1_2
 import com.yk.finance.data.MIGRATION_2_3
 import com.yk.finance.data.MIGRATION_3_4
 import com.yk.finance.data.MIGRATION_4_5
+import com.yk.finance.data.MIGRATION_5_6
 import com.yk.finance.data.Txn
 import com.yk.finance.data.TxnSource
 import com.yk.finance.parser.Channel
@@ -176,7 +177,9 @@ class MigrationVersionTest {
         // A gap here is not a test failure in the abstract: Room refuses to open a
         // database it cannot walk to the current version, and the ledger is unreachable
         // until the app is fixed and reinstalled.
-        val chain = listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        val chain = listOf(
+            MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+        )
             .sortedBy { it.startVersion }
 
         assertEquals(1, chain.first().startVersion)

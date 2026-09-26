@@ -284,6 +284,29 @@ interface FinanceDao {
     @Query("DELETE FROM pending_reviews WHERE id = :id")
     suspend fun dismissReview(id: Long)
 
+    @Query("SELECT * FROM pending_reviews WHERE id = :id")
+    suspend fun reviewById(id: Long): PendingReview?
+
+    // ----- pattern trust -----
+    /**
+     * Records that a person accepted a pattern's reading of their own message.
+     *
+     * REPLACE rather than ABORT so a second confirmation is harmless: the tray can queue
+     * two messages of the same shape before either is answered, and answering both should
+     * not fail the second one.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun confirmPattern(pattern: ConfirmedPattern)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM confirmed_patterns WHERE patternId = :patternId)")
+    suspend fun isPatternConfirmed(patternId: String): Boolean
+
+    @Query("SELECT * FROM confirmed_patterns ORDER BY bank, patternId")
+    fun observeConfirmedPatterns(): Flow<List<ConfirmedPattern>>
+
+    @Query("DELETE FROM confirmed_patterns WHERE patternId = :patternId")
+    suspend fun revokePattern(patternId: String)
+
     // ----- cycle -----
     @Query("SELECT * FROM cycle_state WHERE id = 1")
     suspend fun cycleState(): CycleState?
