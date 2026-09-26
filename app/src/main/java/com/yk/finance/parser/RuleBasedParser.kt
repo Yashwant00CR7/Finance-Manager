@@ -57,7 +57,11 @@ class RuleBasedParser(
         // headers registered after TRAI's published snapshot.
         val headerBank = bankForSender(sender)
         val bankRule = rules.firstOrNull { it.claims(sender, body) }
-        val bank = headerBank ?: bankRule?.bank
+        // Header first, then a hand-written rule's own claim, then the bank the message names
+        // in its text - which is what lets a genuine header registered after TRAI's 2020
+        // snapshot still reach the right patterns. The generic tier below deliberately does
+        // not accept this fallback.
+        val bank = headerBank ?: bankRule?.bank ?: bankMentionedIn(body)
         val bankKnown = bank != null
 
         // Checked before parsing: a mandate notice can be shaped exactly like a

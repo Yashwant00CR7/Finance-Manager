@@ -99,9 +99,11 @@ private val HEADER_TO_BANK: Map<String, String> = buildMap {
     bank("UCO", "UCOBNK")
     bank("BOM", "MAHABK")
     bank("PSB", "PSBANK")
-    bank("EQUITAS", "EQUITS", "EQUITA")
+    // Equitas and Karnataka Bank are deliberately absent. No header for either appears in
+    // TRAI's registry or in any message that was actually observed, and the candidates
+    // circulating in hobby-project allowlists are exactly the kind of entry that turns out to
+    // be a guess somebody copied. Equitas messages are still read, via the body mention below.
     bank("CUB", "CUBANK", "CUBFST", "CUBLTD", "CUBOTP", "CUBSMS", "CUBUPI", "111904")
-    bank("KARNATAKA", "KBLBNK", "KTKBNK")
     bank("AIRTELPB", "AIRBNK", "AIRBSE", "AIRBSI", "171717", "177177", "650017", "650137")
     bank("IPPB", "MYIPPB", "IPBCOM", "IPBKYC", "IPBMSG", "IPBOFR", "IPBOTP", "IPBSEC")
     bank("UJJIVAN", "UJJIVN")
@@ -134,3 +136,47 @@ fun bankForSender(sender: String): String? = HEADER_TO_BANK[normalizeHeader(send
  * Airtel Payments Bank's `171717`. Treating those as personal numbers would drop real alerts.
  */
 fun isRegisteredBankHeader(sender: String): Boolean = bankForSender(sender) != null
+
+
+/**
+ * The bank a message names in its own text, for when the header does not settle it.
+ *
+ * TRAI's published registry is a 2020 snapshot and a bank may register a header at any time,
+ * so a message can arrive from a perfectly genuine header this app has never heard of. Most
+ * Indian alerts sign themselves - "-Federal Bank", "Team IDFC FIRST Bank", "from Equitas A/c"
+ * - and that signature is enough to choose which bank's patterns to try.
+ *
+ * This is used ONLY to reach the researched tier, never the generic one. The distinction is
+ * the whole safety argument: a researched pattern is a tight, bank-specific sentence that a
+ * forged message would have to reproduce exactly, whereas the generic shapes are loose by
+ * design and stay locked behind a registered header. A phishing SMS can write "Federal Bank"
+ * in its body trivially; it gains nothing by doing so, because the pattern it would then face
+ * still has to match.
+ *
+ * Order matters. "Indian Bank" is a substring of "South Indian Bank", and "SBI" appears in
+ * every SBI Card message, so the more specific names are tested first.
+ */
+private val BODY_MENTIONS: List<Pair<Regex, String>> = listOf(
+    Regex("""South\s+Indian\s+Bank""", RegexOption.IGNORE_CASE) to "SIB",
+    Regex("""SBI\s+(?:Credit\s+)?Card""", RegexOption.IGNORE_CASE) to "SBICARD",
+    Regex("""IDFC\s+FIRST\s+Bank""", RegexOption.IGNORE_CASE) to "IDFC",
+    Regex("""Bank\s+of\s+Baroda|BOBCARD""", RegexOption.IGNORE_CASE) to "BOB",
+    Regex("""Bank\s+of\s+India|\bBOI\b""", RegexOption.IGNORE_CASE) to "BOI",
+    Regex("""\bIndian\s+Bank\b""", RegexOption.IGNORE_CASE) to "INDIANBANK",
+    Regex("""IndusInd""", RegexOption.IGNORE_CASE) to "INDUSIND",
+    Regex("""HDFC\s+Bank""", RegexOption.IGNORE_CASE) to "HDFC",
+    Regex("""Axis\s+Bank""", RegexOption.IGNORE_CASE) to "AXIS",
+    Regex("""\bKotak\b""", RegexOption.IGNORE_CASE) to "KOTAK",
+    Regex("""IDBI\s+Bank""", RegexOption.IGNORE_CASE) to "IDBI",
+    Regex("""Federal\s+Bank""", RegexOption.IGNORE_CASE) to "FEDERAL",
+    Regex("""RBL\s+Bank""", RegexOption.IGNORE_CASE) to "RBL",
+    Regex("""Bandhan\s+Bank""", RegexOption.IGNORE_CASE) to "BANDHAN",
+    Regex("""\bEquitas\b""", RegexOption.IGNORE_CASE) to "EQUITAS",
+    Regex("""\bAU\s+Bank\b""", RegexOption.IGNORE_CASE) to "AU",
+    Regex("""YES\s+BANK""", RegexOption.IGNORE_CASE) to "YES",
+    Regex("""\bSBI\b""", RegexOption.IGNORE_CASE) to "SBI",
+)
+
+/** The bank a message names in its own text, or null. See [BODY_MENTIONS]. */
+fun bankMentionedIn(body: String): String? =
+    BODY_MENTIONS.firstOrNull { (pattern, _) -> pattern.containsMatchIn(body) }?.second
