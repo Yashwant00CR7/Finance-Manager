@@ -40,6 +40,9 @@ import com.yk.finance.data.PendingReview
 import com.yk.finance.data.Txn
 import com.yk.finance.domain.formatRupees
 import com.yk.finance.parser.Direction
+import com.yk.finance.parser.ParsedSms
+import com.yk.finance.parser.ParseResult
+import com.yk.finance.parser.PREVIEW_PARSER
 import com.yk.finance.ui.theme.LocalMoneyColors
 
 /**
@@ -253,6 +256,21 @@ private fun ReconcileCard(vm: FinanceViewModel, account: Account) {
  */
 @Composable
 private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingReview) {
+    // A tray entry now arrives in one of two conditions. Either nothing could read the
+    // message, which is what this tray has always been for, or a pattern read it perfectly
+    // well but has not yet earned the right to act on its own. The second is a question with
+    // a suggested answer, and showing it as a blank form would waste the work and invite a
+    // typo into a row the app could already have filled correctly.
+    val preview = remember(review.id, review.rawMessage) {
+        if (review.patternId == null) null
+        else (PREVIEW_PARSER.parse(review.sender, review.rawMessage, review.receivedAt)
+            as? ParseResult.Parsed)?.sms
+    }
+    if (preview != null) {
+        ConfirmCard(vm, review, preview)
+        return
+    }
+
     var amount by remember(review.id) { mutableStateOf("") }
     var payee by remember(review.id) { mutableStateOf("") }
     var accountId by remember(review.id) { mutableStateOf(state.bankAccounts.firstOrNull()?.id) }
@@ -316,6 +334,65 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
                     },
                 ) { Text("Record it") }
                 OutlinedButton(onClick = { vm.dismissReview(review.id) }) { Text("Not a transaction") }
+            }
+        }
+    }
+}
+
+
+/**
+ * A parse waiting to be believed.
+ *
+ * Read-only on purpose. The choice being offered is not "what were the numbers" - the pattern
+ * already answered that, and the original message is right there to check it against - but
+ * "is this pattern right about my bank". Editable fields would blur those two questions, and
+ * the second is the one whose answer the app keeps.
+ *
+ * Accepting files the payment and remembers the pattern, so this bank's messages of the same
+ * shape stop asking. Declining files nothing and teaches nothing, which is the correct
+ * outcome for a pattern that read the message wrongly.
+ */
+@Composable
+private fun ConfirmCard(vm: FinanceViewModel, review: PendingReview, sms: ParsedSms) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp)) {
+            Text(review.sender, style = MaterialTheme.typography.labelMedium)
+            Text(review.rawMessage, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                if (sms.direction == Direction.DEBIT) "Money out" else "Money in",
+                style = MaterialTheme.typography.labelMedium,
+                color = LocalMoneyColors.current.muted,
+            )
+            Text(
+                formatRupees(sms.amountPaise),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                buildString {
+                    append(sms.payee ?: "No payee named")
+                    append("  ·  ")
+                    append(sms.bank)
+                    append(" ..")
+                    append(sms.accountToken)
+                    if (sms.isCard) append(" (card)")
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "First time reading this kind of message from ${sms.bank}. " +
+                    "Confirm once and the app will file them itself from now on.",
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalMoneyColors.current.muted,
+            )
+            Spacer(Modifier.height(10.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { vm.confirmReview(review.id) }) { Text("That is right") }
+                OutlinedButton(onClick = { vm.dismissReview(review.id) }) { Text("No, discard") }
             }
         }
     }

@@ -9,7 +9,7 @@ This app just listens.**
 [![platform](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](#)
 [![kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](#)
 [![compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)](#)
-[![tests](https://img.shields.io/badge/tests-343%20passing-43A047)](#verification)
+[![tests](https://img.shields.io/badge/tests-371%20passing-43A047)](#verification)
 [![network](https://img.shields.io/badge/network-none,%20build--enforced-E53935)](#no-network-and-the-build-proves-it)
 
 <img src="docs/screenshots/records.jpg" width="31%" alt="Records — the ledger grouped by day" />

@@ -98,3 +98,12 @@ class RuleBasedParser(
         return ParseResult.Ignored("not transaction-shaped")
     }
 }
+
+/**
+ * A parser for read-only previews, so the review tray can show what a pattern made of a
+ * message without going near the ledger.
+ *
+ * Shared because it is stateless and because every pattern list it closes over is a
+ * top-level val compiled once; building one per tray row would be wasteful rather than wrong.
+ */
+val PREVIEW_PARSER: TransactionParser = RuleBasedParser()

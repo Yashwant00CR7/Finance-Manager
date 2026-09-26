@@ -725,6 +725,14 @@ class FinanceViewModel(
 
     fun dismissReview(id: Long) = viewModelScope.launch { repository.dismissReview(id) }
 
+    /**
+     * Accept what a pattern read, and stop asking about that shape.
+     *
+     * The transaction is recorded through the ordinary ingest path, so it is deduplicated and
+     * paired with its transfer counterpart exactly as an auto-booked one would be.
+     */
+    fun confirmReview(id: Long) = viewModelScope.launch { repository.confirmReview(id) }
+
     fun recordFromReview(
         reviewId: Long,
         accountId: Long,

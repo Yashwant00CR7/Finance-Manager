@@ -2,6 +2,7 @@ package com.yk.finance.domain
 
 import com.yk.finance.data.Account
 import com.yk.finance.data.AccountKind
+import com.yk.finance.data.ConfirmedPattern
 import com.yk.finance.data.CycleState
 import com.yk.finance.data.FinanceDao
 import com.yk.finance.data.PendingReview
@@ -10,6 +11,7 @@ import com.yk.finance.data.TxnSource
 import com.yk.finance.parser.Direction
 import com.yk.finance.parser.ParseResult
 import com.yk.finance.parser.ParsedSms
+import com.yk.finance.parser.Tier
 import com.yk.finance.parser.TransactionParser
 import java.util.UUID
 
@@ -28,7 +30,42 @@ sealed interface IngestOutcome {
     data class Transfer(val groupId: String) : IngestOutcome
     data class DroppedDuplicate(val existingId: Long) : IngestOutcome
     data object Queued : IngestOutcome
+
+    /**
+     * Understood, but by a pattern this device has not yet agreed with.
+     *
+     * The figures are in the tray with the message they came from, waiting for one tap. Not
+     * [Queued], which means nothing could read the message at all - the difference is what
+     * the tray shows the person, and whether answering it teaches the app anything.
+     */
+    data class AwaitingConfirmation(val patternId: String) : IngestOutcome
     data class Ignored(val reason: String) : IngestOutcome
+}
+
+/**
+ * Whether a parse may reach the ledger without being shown to anyone first.
+ *
+ * Extracted from the ingestor deliberately. It is the single most consequential rule in the
+ * app - it decides what is allowed to write money down unattended - and inside a class that
+ * needs a ninety-method DAO it would be effectively untestable. Here it is a pure function
+ * with three cases and its own tests.
+ *
+ * [Tier.VERIFIED] books because those patterns were written against messages that arrived on
+ * the author's own phone and are asserted against in ParserTest.
+ *
+ * [Tier.RESEARCHED] books only once this device has confirmed it. The sample behind such a
+ * pattern was genuine, but it belonged to a stranger and may predate the bank's current
+ * template, and the only person who can tell is the one holding the phone the message
+ * arrived on.
+ *
+ * [Tier.GENERIC] never books, and passing `confirmed = true` does not change that. Those
+ * shapes are written to match across banks, which is exactly why a phishing SMS fits them;
+ * agreeing with one once says nothing about the next message it will match.
+ */
+internal fun mayBookItself(tier: Tier, confirmed: Boolean): Boolean = when (tier) {
+    Tier.VERIFIED -> true
+    Tier.RESEARCHED -> confirmed
+    Tier.GENERIC -> false
 }
 
 /**
@@ -59,8 +96,79 @@ class SmsIngestor(
                 )
                 IngestOutcome.Queued
             }
-            is ParseResult.Parsed -> record(result.sms, receivedAt)
+            is ParseResult.Parsed -> recordIfTrusted(result.sms, sender, body, receivedAt)
         }
+
+    /**
+     * Decides whether a parse may book itself.
+     *
+     * [Tier.VERIFIED] patterns were written against messages that arrived on the author's own
+     * handset and book immediately. Everything else was written from a sample found in a
+     * public source - real, but somebody else's, and possibly from before the bank last
+     * changed its template - so it books only once this device has agreed with it. The
+     * agreement is per pattern, not per bank: a bank's UPI alert and its ATM alert are
+     * different sentences with independent chances of being wrong.
+     *
+     * [Tier.GENERIC] never passes, however many times it is confirmed. Those shapes match
+     * across banks by design and a phishing SMS fits them perfectly; they exist to put
+     * something readable in the tray, not to be believed.
+     */
+    private suspend fun recordIfTrusted(
+        sms: ParsedSms,
+        sender: String,
+        body: String,
+        receivedAt: Long,
+    ): IngestOutcome {
+        val confirmed = sms.tier == Tier.RESEARCHED && dao.isPatternConfirmed(sms.patternId)
+        if (mayBookItself(sms.tier, confirmed)) return record(sms, receivedAt)
+
+        dao.insertReview(
+            PendingReview(
+                sender = sender,
+                rawMessage = body,
+                receivedAt = receivedAt,
+                reason = "read by ${sms.bank} pattern ${sms.patternId} - please confirm",
+                patternId = sms.patternId,
+            ),
+        )
+        return IngestOutcome.AwaitingConfirmation(sms.patternId)
+    }
+
+    /**
+     * Accepts a tray entry that a pattern had already read, and remembers the pattern.
+     *
+     * The message is deliberately re-parsed rather than replayed from stored fields. The app
+     * may have been updated since it was queued, and what a person is agreeing to is what the
+     * code produces *now* - which is also what the tray just showed them. Storing nine columns
+     * of parse alongside the raw text would only create a second version that could drift
+     * from it.
+     *
+     * Recording then goes through [record] exactly as a live message would, so a confirmed
+     * transaction gets the same duplicate detection, transfer pairing, ATM handling and
+     * categorisation as one that never needed asking about.
+     */
+    suspend fun confirmAndIngest(review: PendingReview): IngestOutcome {
+        val parsed = (parser.parse(review.sender, review.rawMessage, review.receivedAt)
+            as? ParseResult.Parsed)?.sms
+            ?: return IngestOutcome.Ignored("no pattern reads this message any more")
+
+        // A generic shape is never promoted to trusted, however often it is accepted: it
+        // matches across banks by design, so agreeing with it once says nothing about the
+        // next message it will match.
+        if (parsed.tier == Tier.RESEARCHED) {
+            dao.confirmPattern(
+                ConfirmedPattern(
+                    patternId = parsed.patternId,
+                    bank = parsed.bank,
+                    confirmedAt = System.currentTimeMillis(),
+                ),
+            )
+        }
+
+        val outcome = record(parsed, review.receivedAt)
+        dao.dismissReview(review.id)
+        return outcome
+    }
 
     private suspend fun record(sms: ParsedSms, receivedAt: Long): IngestOutcome {
         val account = resolveAccount(sms)
@@ -217,6 +325,14 @@ class SmsIngestor(
      * prompted for reconciliation once per cycle.
      */
     private suspend fun applyBalance(account: Account, sms: ParsedSms) {
+        // A credit card is a debt, and this app deliberately does not pretend to know how
+        // large it is. The figure a card alert carries is the remaining limit, which is not
+        // money you hold; and the arithmetic fallback below would be worse than nothing,
+        // because it would count only the spending seen since the app was installed and
+        // present that as the whole of what you owe. The spending is recorded, which is the
+        // part that matters. The balance stays out of it.
+        if (account.kind == AccountKind.CREDIT_CARD) return
+
         val authoritative = sms.availableBalancePaise
         if (authoritative != null) {
             dao.setBalance(account.id, authoritative)
@@ -240,8 +356,10 @@ class SmsIngestor(
             displayName = "${sms.bank} ..${sms.accountToken}",
             bank = sms.bank,
             accountToken = sms.accountToken,
-            kind = AccountKind.BANK,
-            providesBalance = sms.availableBalancePaise != null,
+            kind = if (sms.isCard) AccountKind.CREDIT_CARD else AccountKind.BANK,
+            // A card's "Avl Lmt" is not a balance, so a card never provides one. See
+            // applyBalance for why its balance is left alone entirely.
+            providesBalance = !sms.isCard && sms.availableBalancePaise != null,
             needsConfirmation = true,
         )
         val id = dao.insertAccount(created)

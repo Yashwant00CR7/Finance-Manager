@@ -17,6 +17,7 @@ import com.yk.finance.importer.DryRunResult
 import com.yk.finance.importer.ImportOutcome
 import com.yk.finance.parser.Channel
 import com.yk.finance.parser.Direction
+import com.yk.finance.parser.RuleBasedParser
 
 /** Everything the UI can do to the ledger. */
 class Repository(
@@ -26,6 +27,14 @@ class Repository(
     private val model: CategoryModel? = null,
     private val outcomes: GuessOutcomes = GuessOutcomes.None,
 ) {
+
+    /**
+     * Used only to accept a tray entry a pattern already read, so that confirming one goes
+     * through exactly the same pipeline a live message does - duplicates, transfers, ATM
+     * legs and categorisation included. Built here rather than injected because it needs
+     * nothing this class does not already hold, and it is stateless.
+     */
+    private val ingestor: SmsIngestor by lazy { SmsIngestor(dao, RuleBasedParser(), model) }
 
     val accounts = dao.observeAccounts()
     val recentTransactions = dao.observeRecent()
@@ -608,6 +617,12 @@ class Repository(
     suspend fun deleteBudget(id: Long) = dao.deleteBudget(id)
 
     suspend fun dismissReview(id: Long) = dao.dismissReview(id)
+
+    /** Accept a tray entry a pattern read, and trust that pattern from now on. */
+    suspend fun confirmReview(reviewId: Long) {
+        val review = dao.reviewById(reviewId) ?: return
+        ingestor.confirmAndIngest(review)
+    }
 
     /** Rescues a message the parser could not read, as a hand-entered transaction. */
     suspend fun recordFromReview(

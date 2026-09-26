@@ -61,6 +61,11 @@ class SmsReceiver : BroadcastReceiver() {
                     is IngestOutcome.DroppedDuplicate ->
                         Log.d(TAG, "duplicate of txn ${outcome.existingId}, dropped")
                     IngestOutcome.Queued -> Log.d(TAG, "queued for review")
+                    is IngestOutcome.AwaitingConfirmation ->
+                        // Silent by design, for now, and consistent with Queued: the figures
+                        // are in the tray and nothing has been booked. Worth knowing that the
+                        // tray carries no badge yet, so this waits until the Inbox is opened.
+                        Log.d(TAG, "awaiting confirmation of ${outcome.patternId}")
                     is IngestOutcome.Ignored -> Log.d(TAG, "ignored: ${outcome.reason}")
                 }
             } catch (t: Throwable) {
