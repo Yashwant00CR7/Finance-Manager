@@ -13,6 +13,7 @@ import com.yk.finance.parser.ParseResult
 import com.yk.finance.parser.ParsedSms
 import com.yk.finance.parser.Tier
 import com.yk.finance.parser.TransactionParser
+import com.yk.finance.parser.applySpec
 import java.util.UUID
 
 /** What ingestion did, so the caller can decide whether to notify. */
@@ -82,8 +83,18 @@ class SmsIngestor(
     private val model: CategoryModel? = null,
 ) {
 
-    suspend fun ingest(sender: String, body: String, receivedAt: Long): IngestOutcome =
-        when (val result = parser.parse(sender, body, receivedAt)) {
+    suspend fun ingest(sender: String, body: String, receivedAt: Long): IngestOutcome {
+        // Learned patterns take precedence: they represent past manual confirmations by this user
+        val learnedList = dao.allLearnedPatterns()
+        for (learned in learnedList) {
+            val spec = learned.toPatternSpec()
+            val parsed = applySpec(spec, body, receivedAt, bank = learned.bank)
+            if (parsed != null) {
+                return record(parsed, receivedAt)
+            }
+        }
+
+        return when (val result = parser.parse(sender, body, receivedAt)) {
             is ParseResult.Ignored -> IngestOutcome.Ignored(result.reason)
             is ParseResult.NeedsReview -> {
                 dao.insertReview(
@@ -98,6 +109,7 @@ class SmsIngestor(
             }
             is ParseResult.Parsed -> recordIfTrusted(result.sms, sender, body, receivedAt)
         }
+    }
 
     /**
      * Decides whether a parse may book itself.

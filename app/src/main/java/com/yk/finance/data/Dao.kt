@@ -281,6 +281,9 @@ interface FinanceDao {
     @Query("SELECT COUNT(*) FROM pending_reviews")
     fun observeReviewCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM pending_reviews")
+    suspend fun reviewCount(): Int
+
     @Query("DELETE FROM pending_reviews WHERE id = :id")
     suspend fun dismissReview(id: Long)
 
@@ -306,6 +309,19 @@ interface FinanceDao {
 
     @Query("DELETE FROM confirmed_patterns WHERE patternId = :patternId")
     suspend fun revokePattern(patternId: String)
+
+    // ----- auto-learned patterns -----
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLearnedPattern(pattern: LearnedPattern)
+
+    @Query("SELECT * FROM learned_patterns ORDER BY createdAt DESC")
+    suspend fun allLearnedPatterns(): List<LearnedPattern>
+
+    @Query("SELECT * FROM learned_patterns ORDER BY createdAt DESC")
+    fun observeLearnedPatterns(): Flow<List<LearnedPattern>>
+
+    @Query("DELETE FROM learned_patterns WHERE id = :id")
+    suspend fun deleteLearnedPattern(id: String)
 
     // ----- cycle -----
     @Query("SELECT * FROM cycle_state WHERE id = 1")

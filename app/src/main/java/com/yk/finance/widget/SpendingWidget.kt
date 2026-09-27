@@ -24,6 +24,7 @@ object WidgetRoute {
     const val EXTRA = "com.yk.finance.widget.ROUTE"
     const val BUDGETS = "budgets"
     const val ADD_EXPENSE = "add_expense"
+    const val INBOX = "inbox"
 }
 
 /**

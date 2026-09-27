@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,11 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yk.finance.data.Account
 import com.yk.finance.data.PendingReview
 import com.yk.finance.data.Txn
+import com.yk.finance.domain.AttentionPrompt
 import com.yk.finance.domain.formatRupees
 import com.yk.finance.parser.Direction
 import com.yk.finance.parser.ParsedSms
@@ -58,7 +61,24 @@ fun InboxScreen(vm: FinanceViewModel, state: UiState, onClose: () -> Unit) {
 
     val reconcile by vm.reconcileNeeded.collectAsState()
     val needsCategory by vm.needsCategory.collectAsState()
+    val inboxCount by vm.inboxCount.collectAsState()
     val smsGranted = rememberSmsPermissionGranted()
+
+    // Dismiss the shade notification once the user has entered the Inbox
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        AttentionPrompt.dismiss(context)
+    }
+
+    // Auto-close when the inbox becomes empty after user takes action
+    var initialCount by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(inboxCount) {
+        if (initialCount == null) {
+            initialCount = inboxCount
+        } else if (initialCount!! > 0 && inboxCount == 0) {
+            onClose()
+        }
+    }
 
     Surface(Modifier.fillMaxSize()) {
         Column {
@@ -273,8 +293,24 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
 
     var amount by remember(review.id) { mutableStateOf("") }
     var payee by remember(review.id) { mutableStateOf("") }
-    var accountId by remember(review.id) { mutableStateOf(state.bankAccounts.firstOrNull()?.id) }
+    val detectedAccountId = remember(review.id, state.bankAccounts) {
+        val tokenMatch = state.bankAccounts.firstOrNull { acc ->
+            acc.accountToken.length >= 3 && review.rawMessage.contains(acc.accountToken, ignoreCase = true)
+        }
+        if (tokenMatch != null) return@remember tokenMatch.id
+
+        val bankFromSender = com.yk.finance.parser.bankForSender(review.sender)
+            ?: com.yk.finance.parser.bankMentionedIn(review.rawMessage)
+        if (bankFromSender != null) {
+            state.bankAccounts.firstOrNull { it.bank.equals(bankFromSender, ignoreCase = true) }?.id
+        } else {
+            null
+        }
+    }
+    var accountId by remember(review.id) { mutableStateOf(detectedAccountId) }
     var accountMenu by remember { mutableStateOf(false) }
+    var categoryId by remember(review.id) { mutableStateOf<Long?>(null) }
+    var categoryMenu by remember { mutableStateOf(false) }
     var isDebit by remember(review.id) { mutableStateOf(true) }
 
     Card(Modifier.fillMaxWidth()) {
@@ -292,16 +328,50 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
             OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Amount (₹)") })
             OutlinedTextField(value = payee, onValueChange = { payee = it }, label = { Text("Payee") })
 
-            Box {
-                OutlinedButton(onClick = { accountMenu = true }) {
-                    Text(state.accountById(accountId)?.displayName ?: "Choose account")
-                }
-                DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
-                    state.accounts.forEach { account ->
-                        DropdownMenuItem(
-                            text = { Text(account.displayName) },
-                            onClick = { accountId = account.id; accountMenu = false },
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    val selected = state.accountById(accountId)
+                    OutlinedButton(onClick = { accountMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = selected?.displayName ?: "Choose account *",
+                            color = if (selected == null) LocalMoneyColors.current.expense else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
                         )
+                    }
+                    DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
+                        state.accounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        account.displayName + if (account.kind == com.yk.finance.data.AccountKind.CASH) " (Cash)" else "",
+                                    )
+                                },
+                                onClick = { accountId = account.id; accountMenu = false },
+                            )
+                        }
+                    }
+                }
+
+                Box(Modifier.weight(1f)) {
+                    val selectedCat = categoryId?.let { state.categoryById(it) }
+                    OutlinedButton(onClick = { categoryMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = selectedCat?.name ?: "Category (opt)",
+                            maxLines = 1,
+                        )
+                    }
+                    DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("None") },
+                            onClick = { categoryId = null; categoryMenu = false },
+                        )
+                        state.expenseCategories.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat.name) },
+                                leadingIcon = { IconBubble(cat.iconKey, cat.colourHex, size = 20.dp) },
+                                onClick = { categoryId = cat.id; categoryMenu = false },
+                            )
+                        }
                     }
                 }
             }
@@ -328,7 +398,7 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
                                 amountPaise = paise,
                                 direction = if (isDebit) Direction.DEBIT else Direction.CREDIT,
                                 payee = payee.ifBlank { null },
-                                categoryId = null,
+                                categoryId = categoryId,
                             )
                         }
                     },

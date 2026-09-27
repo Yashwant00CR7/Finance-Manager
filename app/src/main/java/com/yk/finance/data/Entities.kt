@@ -336,3 +336,19 @@ data class QuickAddSuggestion(
     val uses: Int,
     val lastUsedAt: Long,
 )
+
+/**
+ * A pattern rule automatically synthesized when an unparsed message was manually
+ * recorded by the user. Subsequent messages matching this template are automatically
+ * booked into the ledger without needing repeated manual attention.
+ */
+@Entity(tableName = "learned_patterns")
+data class LearnedPattern(
+    @PrimaryKey val id: String,
+    val bank: String,
+    val regex: String,
+    val direction: Direction,
+    val accountToken: String? = null,
+    val isCard: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+)

@@ -624,7 +624,7 @@ class Repository(
         ingestor.confirmAndIngest(review)
     }
 
-    /** Rescues a message the parser could not read, as a hand-entered transaction. */
+    /** Rescues a message the parser could not read, as a hand-entered transaction and learns the template. */
     suspend fun recordFromReview(
         reviewId: Long,
         accountId: Long,
@@ -634,6 +634,30 @@ class Repository(
         categoryId: Long?,
         occurredAt: Long,
     ) {
+        val review = dao.reviewById(reviewId)
+        val account = dao.accountById(accountId)
+
+        // Synthesize and learn a template pattern so future matching messages book automatically
+        if (review != null && account != null) {
+            TemplateLearner.learn(
+                rawMessage = review.rawMessage,
+                amountPaise = amountPaise,
+                direction = direction,
+                account = account,
+                payee = payee,
+            )?.let { learned ->
+                dao.insertLearnedPattern(learned)
+            }
+        }
+
+        // If a category was chosen, teach the payee rule so future occurrences get categorised
+        if (categoryId != null && !payee.isNullOrBlank()) {
+            val key = Categorizer.payeeKey(payee)
+            if (key != null) {
+                dao.upsertRule(CategoryRule(payeeKey = key, categoryId = categoryId))
+            }
+        }
+
         dao.insertTxn(
             Txn(
                 accountId = accountId,
@@ -645,6 +669,7 @@ class Repository(
                 categoryId = categoryId,
                 countsAsSpending = direction == Direction.DEBIT,
                 source = TxnSource.MANUAL,
+                rawMessage = review?.rawMessage,
             ),
         )
         dao.adjustBalance(accountId, if (direction == Direction.DEBIT) -amountPaise else amountPaise)

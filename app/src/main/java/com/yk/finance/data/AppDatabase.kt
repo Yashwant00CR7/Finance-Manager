@@ -127,12 +127,24 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+/**
+ * Schema 7: auto-learned message patterns.
+ *
+ * When an unparsed message is manually recorded, its template is synthesized and saved
+ * so future similar alerts book automatically.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        SchemaV7.STATEMENTS.forEach(db::execSQL)
+    }
+}
+
 @Database(
     entities = [
         Account::class, Txn::class, Category::class, CategoryRule::class,
         Budget::class, PendingReview::class, CycleState::class, BudgetAlert::class,
         ImportBatch::class, ImportedRow::class, CycleBoundary::class,
-        ConfirmedPattern::class,
+        ConfirmedPattern::class, LearnedPattern::class,
     ],
     version = AppDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -142,7 +154,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): FinanceDao
 
     companion object {
-        const val SCHEMA_VERSION = 6
+        const val SCHEMA_VERSION = 7
         const val DB_NAME = "finance.db"
 
         @Volatile private var instance: AppDatabase? = null
@@ -158,7 +170,7 @@ abstract class AppDatabase : RoomDatabase() {
                 // silently wiping a ledger is the one outcome worse than a crash.
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                    MIGRATION_5_6,
+                    MIGRATION_5_6, MIGRATION_6_7,
                 )
                 .build()
         }

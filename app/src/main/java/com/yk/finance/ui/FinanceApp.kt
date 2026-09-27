@@ -129,6 +129,7 @@ fun FinanceApp(app: FinanceApplication, widgetRoute: String? = null) {
         when (widgetRoute?.substringBefore('#')) {
             WidgetRoute.BUDGETS -> { route = Route.Tabs; tab = Tab.BUDGETS }
             WidgetRoute.ADD_EXPENSE -> route = Route.Entry(null)
+            WidgetRoute.INBOX -> route = Route.Inbox
         }
     }
     val drawer = rememberDrawerState(DrawerValue.Closed)
