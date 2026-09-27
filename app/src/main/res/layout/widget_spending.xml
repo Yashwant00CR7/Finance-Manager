@@ -58,6 +58,17 @@
                 android:progress="43"
                 android:progressDrawable="@drawable/widget_progress" />
 
+            <ProgressBar
+                android:id="@+id/widget_bar_over"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="9dp"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="100"
+                android:visibility="gone"
+                android:progressDrawable="@drawable/widget_progress_over" />
+
             <TextView
                 android:id="@+id/widget_percent"
                 android:layout_width="wrap_content"

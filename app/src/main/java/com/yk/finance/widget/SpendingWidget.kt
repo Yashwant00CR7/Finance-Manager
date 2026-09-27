@@ -160,12 +160,15 @@ class SpendingWidget : AppWidgetProvider() {
 
             setViewVisibility(R.id.widget_bar_row, if (state.hasBar) View.VISIBLE else View.GONE)
             if (state.hasBar) {
-                setProgressBar(R.id.widget_bar, 100, state.barPercent, false)
-                setInt(
-                    R.id.widget_bar,
-                    "setProgressDrawableTiled",
-                    if (state.exceeded) R.drawable.widget_progress_over else R.drawable.widget_progress,
-                )
+                if (state.exceeded) {
+                    setViewVisibility(R.id.widget_bar, View.GONE)
+                    setViewVisibility(R.id.widget_bar_over, View.VISIBLE)
+                    setProgressBar(R.id.widget_bar_over, 100, state.barPercent, false)
+                } else {
+                    setViewVisibility(R.id.widget_bar, View.VISIBLE)
+                    setViewVisibility(R.id.widget_bar_over, View.GONE)
+                    setProgressBar(R.id.widget_bar, 100, state.barPercent, false)
+                }
                 setTextViewText(R.id.widget_percent, "${state.percent}%")
             }
 

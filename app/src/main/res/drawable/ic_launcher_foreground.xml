@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Geometric Indian Rupee Symbol in platinum white -->
+    <group
+        android:scaleX="2.6"
+        android:scaleY="2.6"
+        android:translateX="25.4"
+        android:translateY="20.2">
+        <path
+            android:fillColor="#F4F4F6"
+            android:pathData="M13.66,7 C13.1,5.82 11.9,5 10.5,5 L6,5 L6,7 L8.5,7 C9.5,7 10.3,7.6 10.5,8.5 L6,8.5 L6,10.5 L10.5,10.5 C10.2,11.6 9.2,12.5 8,12.5 L6,12.5 L6,14.5 L12.5,21 L15.5,21 L8.5,14 C10.5,13.8 12.2,12.4 12.8,10.5 L16,10.5 L16,8.5 L13.3,8.5 C13.5,8 13.6,7.5 13.66,7 Z" />
+    </group>
+    <!-- Subtle warm gold accent dot (Mercury / Linear aesthetic) -->
+    <path
+        android:fillColor="#FFE9B949"
+        android:pathData="M73,33.5 a2.8,2.8 0 1,0 0.001,0 Z" />
+</vector>
