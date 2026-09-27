@@ -128,6 +128,7 @@ fun FinanceApp(app: FinanceApplication, widgetRoute: String? = null) {
     LaunchedEffect(widgetRoute) {
         when (widgetRoute?.substringBefore('#')) {
             WidgetRoute.BUDGETS -> { route = Route.Tabs; tab = Tab.BUDGETS }
+            WidgetRoute.ACCOUNTS -> { route = Route.Tabs; tab = Tab.ACCOUNTS }
             WidgetRoute.ADD_EXPENSE -> route = Route.Entry(null)
             WidgetRoute.INBOX -> route = Route.Inbox
         }

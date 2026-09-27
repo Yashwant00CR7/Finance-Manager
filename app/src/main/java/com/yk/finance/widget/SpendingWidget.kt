@@ -25,6 +25,7 @@ object WidgetRoute {
     const val BUDGETS = "budgets"
     const val ADD_EXPENSE = "add_expense"
     const val INBOX = "inbox"
+    const val ACCOUNTS = "accounts"
 }
 
 /**
@@ -135,12 +136,15 @@ class SpendingWidget : AppWidgetProvider() {
             ?.budget
             ?.limitPaise
 
-        return WidgetState.of(cycleStart, now, spent, budget, income)
+        val totalBalance = app.dao.allAccounts().sumOf { it.currentBalancePaise }
+
+        return WidgetState.of(cycleStart, now, spent, budget, income, totalBalance)
     }
 
     private fun build(context: Context, state: WidgetState.Snapshot): RemoteViews =
         RemoteViews(context.packageName, R.layout.widget_spending).apply {
             setTextViewText(R.id.widget_period, state.periodLabel)
+            setTextViewText(R.id.widget_balance, "Bal: ${WidgetState.shortRupees(state.totalBalancePaise)}")
 
             setTextViewText(
                 R.id.widget_amount,
@@ -185,6 +189,7 @@ class SpendingWidget : AppWidgetProvider() {
             )
 
             setOnClickPendingIntent(R.id.widget_root, open(context, WidgetRoute.BUDGETS))
+            setOnClickPendingIntent(R.id.widget_balance, open(context, WidgetRoute.ACCOUNTS))
             setOnClickPendingIntent(R.id.widget_add, open(context, WidgetRoute.ADD_EXPENSE))
         }
 

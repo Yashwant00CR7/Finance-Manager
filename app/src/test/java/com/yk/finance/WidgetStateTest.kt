@@ -151,4 +151,26 @@ class WidgetStateTest {
         // which is a small lie in the direction that erodes trust fastest.
         assertEquals("₹99", WidgetState.shortRupees(9_999))
     }
+
+    @Test
+    fun `negative figures format with leading minus sign`() {
+        assertEquals("-₹500", WidgetState.shortRupees(-50_000))
+        assertEquals("-₹12,345", WidgetState.shortRupees(-1_234_500))
+    }
+
+    @Test
+    fun `total balance defaults to zero and records supplied value`() {
+        val defaultState = state(spent = 100_000)
+        assertEquals(0L, defaultState.totalBalancePaise)
+
+        val balanceState = WidgetState.of(
+            cycleStartMillis = sept,
+            nowMillis = midSept,
+            spentPaise = 100_000,
+            budgetPaise = null,
+            incomePaise = 0,
+            totalBalancePaise = 1_340_650,
+        )
+        assertEquals(1_340_650L, balanceState.totalBalancePaise)
+    }
 }

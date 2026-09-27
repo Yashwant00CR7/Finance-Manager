@@ -34,6 +34,7 @@ object WidgetState {
         val ceilingPaise: Long,
         val ceiling: Ceiling,
         val daysToPayday: Int,
+        val totalBalancePaise: Long = 0L,
     ) {
         val hasBar: Boolean get() = ceiling != Ceiling.NONE
 
@@ -68,6 +69,7 @@ object WidgetState {
         spentPaise: Long,
         budgetPaise: Long?,
         incomePaise: Long,
+        totalBalancePaise: Long = 0L,
     ): Snapshot {
         val ceilingPaise: Long
         val ceiling: Ceiling
@@ -92,6 +94,7 @@ object WidgetState {
             ceilingPaise = ceilingPaise,
             ceiling = ceiling,
             daysToPayday = daysToPayday(nowMillis),
+            totalBalancePaise = totalBalancePaise,
         )
     }
 
@@ -117,5 +120,9 @@ object WidgetState {
      * doing something else, and ".00" on every figure costs width that the bar needs
      * more - so this rounds down, and only here.
      */
-    fun shortRupees(paise: Long): String = "₹" + groupIndianDigits(paise / 100)
+    fun shortRupees(paise: Long): String {
+        val sign = if (paise < 0) "-" else ""
+        val rupees = Math.abs(paise) / 100
+        return "${sign}₹${groupIndianDigits(rupees)}"
+    }
 }
