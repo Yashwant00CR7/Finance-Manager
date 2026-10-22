@@ -1,20 +1,20 @@
 # GSD Project State
 
-**Active Milestone:** v2.7.0 (Bugfix - do not bump version)
-**Current Phase:** Phase 1 - SMS Parser Fix, Generic Extraction, and Template Learning
+**Active Milestone:** v2.7.0 (Bugfix & Stress Test - do not bump version)
+**Current Phase:** Phase 2 - Hard Stress Test Suite for Parser and Learning Lifecycle
 **Status:** Complete
-**Last Updated:** 2026-10-22 12:35:15
+**Last Updated:** 2026-10-22 13:04:35
 
 ## Active Decisions & Constraints
-- **Union Bank Parser Fix**: Make `for` optional in `UnionRule.TXN`, match full header/prefix `Union Bank of India A/c *`, extract payee using `Fvg:` before falling back to channel.
-- **Generic Payee & Disclaimer Handling**: Generic heuristics across all banks for `Fvg:` / `to` payee extraction and disclaimer relaxing (`Not you? Call...`, `If not you...`, `Never share...`).
-- **Inbox Review Smart Pre-filling**: Pre-fill Amount, Payee, and Money in/out direction toggle using safe, conservative heuristics in `InboxScreen`. Do not be overly optimistic.
-- **Template Learner Generalization**: Capture time `HH:mm[:ss]` as a slot, support dual-direction slots (`Debited|Credited`), and relax trailing disclaimers so learned patterns match future alerts.
-- **Identity & Git**: Personal repo identity `Yashwant00CR7` / `10a19yashwant@gmail.com` on `github-personal`. No global git config changes.
+- **Stress Test Scope**: Parser Hard Battery (lakhs formatting, complex payees, multi-number density, unusual spacing), Negative / Anti-Phishing Battery, and End-to-End Learning Lifecycle Battery (Ingest -> Review -> Record & Learn -> Auto-Ingest future debits/credits).
+- **Dedicated Test File**: All hard tests located in `app/src/test/java/com/yk/finance/ParserAndLearningStressTest.kt`.
+- **Version Constraint**: Retain version at `v2.7.0` (versionCode 14, versionName "2.7.0").
+- **Identity & Git**: Personal repo identity `Yashwant00CR7` / `10a19yashwant@gmail.com` on `github-personal`.
 - **Backpressure**: `gradle testDebugUnitTest` and `gradle assembleDebug`.
 
 ## Current Position
-- Phase: 01-parser-and-learning
+- Phase: 02-hard-stress-tests
 - Total Plans: 1
 - Completed Plans: 1
 - Next Action: Ship / User Review
+

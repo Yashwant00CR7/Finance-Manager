@@ -1,28 +1,20 @@
-# Phase Context: SMS Parser Fix, Generic Extraction, and Template Learning
+# Phase Context: Hard Stress Test Suite for Parser and Learning Lifecycle
 
 ## Problem & User Intent
-The user reported that the SMS parser fails on real Union Bank transaction alerts (such as `Union Bank of India A/c *2209 Debited Rs:1755.00 on 22-10-2026 10:40:05 by Mob Bk ref no 629576250805, Fvg: AONE TRA Avl Bal Rs:5328.67. Not you?Call 18002333/SMS BLOCK 2209 to 8879365472`), landing in the Inbox tray as `Not recorded: no rule matched for UNION`. Furthermore, when messages land in the inbox unread, the user wants Money in / Money out pre-selected, safe pre-filling of amount/payee, and when recorded manually, the system must learn from the user's inputs so future messages of that format parse automatically across time changes, disclaimer variations, and directions.
+The user requested a new set of hard tests on the parser and its learning capability to rigorously stress-test and prove all changes made in Phase 1 across edge cases, complex payees, multi-number density, negative/anti-fraud boundaries, and end-to-end ingestion learning.
 
 ## Mental Model & Core Abstractions
-- **Transaction Direction**: Transactions are either `Direction.DEBIT` ("Money out") or `Direction.CREDIT` ("Money in"). Both the built-in parser and the learned template engine must distinguish and handle both.
-- **Payee Extraction**: Indian bank SMS formats frequently name the payee with `Fvg:` ("Favoring"), `to <payee>`, or `VPA <vpa>`. This must work generically across banks rather than being bank-siloed.
-- **Safety / Disclaimer Trailers**: Banks append varying fraud/helpline disclaimers (`Not you? Call...`, `SMS BLOCK...`, `Never share OTP...`). These must not break parsing or become frozen literal substrings in learned regex templates.
-- **Conservative Heuristics**: Pre-filling in the UI must start less aggressive (safe/conservative) to avoid high-risk false positives, while still eliminating friction for clear transactions.
-- **Template Learning Loop**: When an unparsed message is manually recorded by the user, `TemplateLearner.learn` generates an executable regex pattern. It must slot variables (amount, account token, date, time, ref, payee, bal, direction) so future messages with different timestamps, amounts, and dates are recognized without human intervention.
+- **Adversarial SMS Shapes**: Real Indian banking SMS can contain lakhs delimiters (`1,25,000.50`), complex payee names with initials, slashes, or ampersands (`MR. A.B. SHARMA & CO.`, `GOOGLE*SERVICES/123`), dense numeric clusters (multiple phone numbers, ref IDs, balances, account masks), and inconsistent whitespace.
+- **Defensive Invariants**: Declined transactions, mandate requests, and phishing/unrelated alerts must never match financial rules or learned templates.
+- **Full Learning Loop**: When an unrecognized alert arrives, it must move cleanly from Ingestor -> Review -> TemplateLearner -> SQLite DAO -> future automated ingestion of both Money In and Money Out.
 
 ## Locked Architectural Decisions
-- **Union Rule Enhancement**: Support optional `for` in `(Debited|Credited)\s+(?:for\s+)?(?:Rs|INR)\.?:?\s*`, allow `Union Bank of India` or `A/c` prefix, and extract `Fvg:\s*([^,.\n]+)` as payee.
-- **Generic Payee & Trailing Cleaner**: Add generic detection helpers in parser primitives for `Fvg:` and common payee structures, and strip or make optional fraud disclaimers.
-- **Inbox Review Form Pre-filling**: In `InboxScreen.kt`, safely initialize:
-  - `amount`: first well-formed currency amount in the body.
-  - `isDebit`: boolean determined by explicit debit vs credit keywords in the body (defaulting to true only if unspecified).
-  - `payee`: extracted if clear `Fvg:` or `to` indicator is present, else blank.
-- **TemplateLearner Dynamic Slots**:
-  - Add `TIME_REGEX` slot so timestamps do not freeze as literal text.
-  - Add direction regex slot (`(?<dir>Debited|Credited|Debit|Credit)`) so one learned template can match both Money in and Money out.
-  - Relax or make optional trailing disclaimer text after standard balance/reference.
-- **TDD Verification**: All parser additions, inbox heuristics, and template learner cases must have automated unit tests.
+- Create a dedicated stress test suite: `app/src/test/java/com/yk/finance/ParserAndLearningStressTest.kt`.
+- Test real Room DAO in-memory database or mock DAO for the end-to-end learning lifecycle.
+- Keep version strictly as `v2.7.0` (versionCode 14, versionName "2.7.0").
+- Use strict TDD: identify any edge cases that fail, fix them cleanly, and verify 100% test pass.
 
 ## Verification & Backpressure Seams
-- Unit Test Suite: `gradle testDebugUnitTest`
-- Debug APK Build: `gradle assembleDebug`
+- Unit Test Suite: `gradle testDebugUnitTest --tests "com.yk.finance.ParserAndLearningStressTest"`
+- Full Test Suite: `gradle testDebugUnitTest`
+- Debug Build: `gradle assembleDebug`
