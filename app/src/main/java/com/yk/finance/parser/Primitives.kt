@@ -134,8 +134,8 @@ internal fun istCalendar(): Calendar = Calendar.getInstance(IST)
  * - "VPA <upi-id>"
  */
 internal val GENERIC_PAYEE_PATTERNS = listOf(
-    Regex("""\bFvg:?\s*([^,.\n]+?)(?:\s+(?:Avl\s+)?Bal\b|[.,\n]|$)""", RegexOption.IGNORE_CASE),
-    Regex("""\b(?:to|towards)\s+([A-Za-z0-9][A-Za-z0-9\s.&'-]{1,30}?)(?:\s+(?:on|via|ref|bal|using|avl|ref\s*no\b|through)|[.,\n]|$)""", RegexOption.IGNORE_CASE),
+    Regex("""\bFvg:?\s*(.+?)(?:\s+(?:(?:Avl|Avb|Avbl|Available|Clear|Total|Current)\s+)?Bal(?:ance)?\b|[,\n\r;]|\s+Not\s+you\b|\s+If\s+not\s+you\b|\s+Call\s+\d+|\s+ref\s*no\b|\.$|$)""", RegexOption.IGNORE_CASE),
+    Regex("""\b(?:to|towards)\s+([A-Za-z0-9][A-Za-z0-9\s.&'/-]{1,50}?)(?:\s+(?:on|via|using|avl|ref\s*no\b|through\b)|\s+(?:(?:Avl|Avb|Avbl|Available)\s+)?Bal\b|\s+Not\s+you\b|[,\n\r;]|\.$|$)""", RegexOption.IGNORE_CASE),
     Regex("""\b(?:VPA|vpa)\s+([a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+)""", RegexOption.IGNORE_CASE),
 )
 
