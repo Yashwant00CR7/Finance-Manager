@@ -291,8 +291,12 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
         return
     }
 
-    var amount by remember(review.id) { mutableStateOf("") }
-    var payee by remember(review.id) { mutableStateOf("") }
+    val prefill = remember(review.id, review.rawMessage) {
+        com.yk.finance.parser.extractPreFill(review.rawMessage)
+    }
+
+    var amount by remember(review.id) { mutableStateOf(prefill.amountRupees) }
+    var payee by remember(review.id) { mutableStateOf(prefill.payee) }
     val detectedAccountId = remember(review.id, state.bankAccounts) {
         val tokenMatch = state.bankAccounts.firstOrNull { acc ->
             acc.accountToken.length >= 3 && review.rawMessage.contains(acc.accountToken, ignoreCase = true)
@@ -311,7 +315,7 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
     var accountMenu by remember { mutableStateOf(false) }
     var categoryId by remember(review.id) { mutableStateOf<Long?>(null) }
     var categoryMenu by remember { mutableStateOf(false) }
-    var isDebit by remember(review.id) { mutableStateOf(true) }
+    var isDebit by remember(review.id) { mutableStateOf(prefill.isDebit) }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {

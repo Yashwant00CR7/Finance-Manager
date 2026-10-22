@@ -115,3 +115,38 @@ private val DIRECTION_ANYWHERE = Regex("""(debit|credit|withdraw|spent|paid|sent
  */
 fun looksFinancial(body: String, bankKnown: Boolean): Boolean =
     bankKnown && AMOUNT_ANYWHERE.containsMatchIn(body) && DIRECTION_ANYWHERE.containsMatchIn(body)
+
+data class PreFillValues(
+    val amountRupees: String = "",
+    val isDebit: Boolean = true,
+    val payee: String = "",
+)
+
+private val CREDIT_SIGNAL = Regex("""\b(credited|credit|received|refund|deposited)\b""", RegexOption.IGNORE_CASE)
+private val DEBIT_SIGNAL = Regex("""\b(debited|debit|spent|paid|withdrawn|sent)\b""", RegexOption.IGNORE_CASE)
+private val CURRENCY_AMOUNT = Regex("""(?:Rs|INR|₹)\.?:?\s*([0-9][0-9,]*(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
+private val BAL_PREFIX = Regex("""(?:Avl|Avb|Avbl|Available|Clear|Current|Final|Total)?\s*Bal(?:ance)?[:\s-]*$""", RegexOption.IGNORE_CASE)
+
+fun extractPreFill(body: String): PreFillValues {
+    val isCredit = CREDIT_SIGNAL.containsMatchIn(body)
+    val isDebit = DEBIT_SIGNAL.containsMatchIn(body)
+    val debitFlag = if (isCredit && !isDebit) false else true
+
+    var amount = ""
+    for (m in CURRENCY_AMOUNT.findAll(body)) {
+        val textBefore = body.substring(0, m.range.first)
+        if (!BAL_PREFIX.containsMatchIn(textBefore.takeLast(25))) {
+            amount = m.groupValues[1].replace(",", "")
+            break
+        }
+    }
+
+    val payee = extractGenericPayee(body) ?: ""
+
+    return PreFillValues(
+        amountRupees = amount,
+        isDebit = debitFlag,
+        payee = payee,
+    )
+}
+
