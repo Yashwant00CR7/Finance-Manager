@@ -193,7 +193,7 @@ private fun RecordRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     when {
-                        isTransfer -> "Transfer"
+                        isTransfer -> "Self Transfer"
                         else -> state.categoryName(txn.categoryId)
                     },
                     style = MaterialTheme.typography.titleMedium,
@@ -304,7 +304,7 @@ private fun RecordRow(
                     )
                     Text(
                         when {
-                            txn.source == TxnSource.TRANSFER_LEG -> "transfer"
+                            txn.source == TxnSource.TRANSFER_LEG -> "self transfer"
                             txn.source == TxnSource.ADJUSTMENT -> "correction"
                             // Naming the person is the whole point: "not spending" on a
                             // 120 debit invites you to wonder what it was, when the app

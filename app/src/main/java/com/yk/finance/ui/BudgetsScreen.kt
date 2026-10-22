@@ -116,7 +116,11 @@ fun BudgetsScreen(vm: FinanceViewModel, state: UiState) {
         if (categoryBudgets.isEmpty()) {
             item {
                 Text(
-                    "No budgets for this cycle yet. Add tracks a category against a limit and warns at 80%.",
+                    if (overall != null) {
+                        "No per-category budgets for this cycle yet. Add tracks a specific category against a limit."
+                    } else {
+                        "No budgets for this cycle yet. Add tracks a category against a limit and warns at 80%."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(24.dp),
                 )

@@ -21,6 +21,8 @@ import com.yk.finance.domain.BudgetEvaluator
 import com.yk.finance.domain.BudgetProgress
 import com.yk.finance.domain.BudgetResolver
 import com.yk.finance.domain.CategoryModel
+import com.yk.finance.domain.CycleBackfill
+import com.yk.finance.domain.CycleCalculator
 import com.yk.finance.domain.CommitResult
 import com.yk.finance.domain.Ledger
 import com.yk.finance.domain.Looks
@@ -32,10 +34,13 @@ import com.yk.finance.domain.Splitter
 import com.yk.finance.domain.UNCATEGORISED
 import com.yk.finance.importer.DryRunResult
 import com.yk.finance.parser.Direction
+import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -51,7 +56,7 @@ enum class TypeFilter(val label: String) {
     ALL("All"),
     INCOME("Income"),
     EXPENSE("Expense"),
-    TRANSFER("Transfer"),
+    TRANSFER("Self Transfer"),
 }
 
 /**
@@ -276,22 +281,22 @@ class FinanceViewModel(
     private val selectedStart = MutableStateFlow<Long?>(null)
 
     /**
-     * Calendar months, bounded by the ledger.
+     * Salary cycle periods matching the home screen widget.
      *
-     * Derived from the transactions rather than from [UiState.boundaries]: a period is
-     * now a month, and a month exists because something happened in it. The old
-     * boundary-driven list could collapse to a single period spanning all of time - one
-     * bucket holding July through September while the header called it September - and
-     * that is exactly the figure this replaces.
+     * Walks the recorded cycle boundaries and ensures the current active cycle is
+     * included and marked open.
      */
     val periods: StateFlow<List<Period>> = state
         .map { s ->
-            Periods.months(
-                earliestMillis = s.transactions.minOfOrNull { it.occurredAt },
-                latestMillis = s.transactions.maxOfOrNull { it.occurredAt },
+            derivePeriods(
+                transactions = s.transactions,
+                recordedBoundaries = s.boundaries,
+                cycleState = s.cycle,
+                accounts = s.accounts,
                 now = System.currentTimeMillis(),
             )
         }
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // Falls back to the open month rather than the last one: a future-dated entry
@@ -301,18 +306,14 @@ class FinanceViewModel(
         list.firstOrNull { it.startMillis == selected }
             ?: list.firstOrNull { it.isOpen }
             ?: list.lastOrNull()
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
-     * The salary cycles the app has detected, for the Settings card only.
-     *
-     * Nothing else reads these any more. They are kept and still recorded because they
-     * describe your payroll, which is a real thing worth knowing - but they no longer
-     * decide what "September" means anywhere in the interface.
+     * The salary cycles matching the app's derived periods, for the Settings card.
      */
-    val salaryCycles: StateFlow<List<Period>> = state
-        .map { Periods.from(it.boundaries, System.currentTimeMillis()) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val salaryCycles: StateFlow<List<Period>> = periods
 
     fun showPreviousPeriod() {
         val list = periods.value
@@ -850,8 +851,73 @@ class FinanceViewModel(
             FinanceViewModel(repository, evaluator, model, prefs) as T
     }
 
-    private companion object {
+    companion object {
         /** How many model suggestions may jump the queue in a picker. */
-        const val SUGGESTIONS = 3
+        private const val SUGGESTIONS = 3
+
+        fun derivePeriods(
+            transactions: List<Txn>,
+            recordedBoundaries: List<CycleBoundary>,
+            cycleState: CycleState?,
+            accounts: List<Account>,
+            now: Long,
+        ): List<Period> {
+            val earliest = transactions.minOfOrNull { it.occurredAt }
+            val accountsById = accounts.associateBy { it.id }
+            val candidates = transactions
+                .filter { it.direction == Direction.CREDIT }
+                .map { txn ->
+                    CycleBackfill.SalaryCandidate(
+                        txnId = txn.id,
+                        occurredAt = txn.occurredAt,
+                        amountPaise = txn.amountPaise,
+                        payee = txn.payee,
+                        bank = accountsById[txn.accountId]?.bank,
+                    )
+                }
+
+            val derived = CycleBackfill.derive(candidates, cycleState, earliest, now).map {
+                CycleBoundary(
+                    startMillis = it.startMillis,
+                    source = it.source,
+                    inferred = it.inferred,
+                    txnId = it.txnId,
+                )
+            }
+
+            val boundaries = derived.toMutableList()
+            for (recorded in recordedBoundaries) {
+                boundaries.removeAll { b ->
+                    abs(
+                        ChronoUnit.DAYS.between(
+                            CycleCalculator.toLocalDate(b.startMillis),
+                            CycleCalculator.toLocalDate(recorded.startMillis),
+                        ),
+                    ) <= CycleBackfill.MATCH_WINDOW_DAYS
+                }
+                boundaries.add(recorded)
+            }
+
+            val currentCycle = cycleState ?: CycleCalculator.seed(now)
+            if (boundaries.none { it.startMillis == currentCycle.cycleStartMillis }) {
+                boundaries.removeAll { b ->
+                    abs(
+                        ChronoUnit.DAYS.between(
+                            CycleCalculator.toLocalDate(b.startMillis),
+                            CycleCalculator.toLocalDate(currentCycle.cycleStartMillis),
+                        ),
+                    ) <= CycleBackfill.MATCH_WINDOW_DAYS
+                }
+                boundaries.add(
+                    CycleBoundary(
+                        startMillis = currentCycle.cycleStartMillis,
+                        source = if (currentCycle.salaryAmountPaise != null) "SALARY" else "FALLBACK",
+                        inferred = currentCycle.salaryAmountPaise == null,
+                    ),
+                )
+            }
+
+            return Periods.from(boundaries, now)
+        }
     }
 }

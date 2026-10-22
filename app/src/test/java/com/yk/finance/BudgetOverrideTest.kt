@@ -2,6 +2,7 @@ package com.yk.finance
 
 import com.yk.finance.data.Budget
 import com.yk.finance.domain.BudgetResolver
+import com.yk.finance.domain.Periods
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -132,5 +133,17 @@ class BudgetOverrideTest {
         assertEquals(0L, row.id)
         assertNull(row.periodStart)
         assertEquals(food, row.categoryId)
+    }
+
+    @Test
+    fun `editing an override pinned to labelledMonthStart updates it rather than duplicating`() {
+        val labelledSeptember = Periods.labelledMonthStart(september)
+        val budgets = listOf(
+            Budget(id = 7, categoryId = food, limitPaise = 450_000, periodStart = null),
+            Budget(id = 8, categoryId = food, limitPaise = 500_000, periodStart = labelledSeptember),
+        )
+        val row = BudgetResolver.rowToWrite(budgets, food, 520_000, september, thisCycleOnly = true)
+        assertEquals(8L, row.id)
+        assertEquals(520_000L, row.limitPaise)
     }
 }

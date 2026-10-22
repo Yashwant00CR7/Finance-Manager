@@ -52,6 +52,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -96,6 +97,8 @@ fun EntryScreen(
     vm: FinanceViewModel,
     state: UiState,
     txnId: Long?,
+    initialType: TypeFilter? = null,
+    initialAccountId: Long? = null,
     onClose: () -> Unit,
 ) {
     BackHandler(onBack = onClose)
@@ -126,14 +129,29 @@ fun EntryScreen(
             when {
                 isTransferLeg -> TypeFilter.TRANSFER
                 existing?.direction == Direction.CREDIT -> TypeFilter.INCOME
+                existing != null -> TypeFilter.EXPENSE
+                initialType != null -> initialType
                 else -> TypeFilter.EXPENSE
             },
         )
     }
     var accountId by remember(existing) {
-        mutableStateOf(existing?.accountId ?: state.cashAccount?.id ?: state.accounts.firstOrNull()?.id)
+        mutableStateOf(
+            existing?.accountId
+                ?: initialAccountId
+                ?: state.cashAccount?.id
+                ?: state.accounts.firstOrNull()?.id,
+        )
     }
-    var toAccountId by remember(existing) { mutableStateOf<Long?>(null) }
+    var toAccountId by remember(existing) {
+        mutableStateOf<Long?>(
+            if (type == TypeFilter.TRANSFER || initialType == TypeFilter.TRANSFER) {
+                state.accounts.firstOrNull { it.id != (existing?.accountId ?: initialAccountId) }?.id
+            } else {
+                null
+            },
+        )
+    }
     var categoryId by remember(existing) { mutableStateOf(existing?.categoryId) }
     var note by remember(existing) { mutableStateOf(existing?.note ?: existing?.payee.orEmpty()) }
     var expression by remember(existing) {
@@ -154,11 +172,17 @@ fun EntryScreen(
                 .toLocalDateTime(),
         )
     }
-    var amountUnlocked by remember(existing) { mutableStateOf(!fromSms) }
+    var amountUnlocked by remember(existing) { mutableStateOf(!fromSms && !isTransferLeg) }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var confirmUnlock by remember { mutableStateOf(false) }
+
+    LaunchedEffect(accountId, type) {
+        if (type == TypeFilter.TRANSFER && (toAccountId == null || toAccountId == accountId)) {
+            toAccountId = state.accounts.firstOrNull { it.id != accountId }?.id
+        }
+    }
 
     val evaluated = remember(expression) { Calculator.evaluate(expression) }
     val canSave = evaluated != null && evaluated.paise > 0 && accountId != null &&

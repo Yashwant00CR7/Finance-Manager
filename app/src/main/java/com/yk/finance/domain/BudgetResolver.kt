@@ -21,12 +21,13 @@ object BudgetResolver {
         val isOverride: Boolean,
     )
 
-    fun effective(budgets: List<Budget>, periodStart: Long): List<Effective> =
-        budgets
-            .filter { it.periodStart == null || it.periodStart == periodStart }
+    fun effective(budgets: List<Budget>, periodStart: Long): List<Effective> {
+        val labelled = Periods.labelledMonthStart(periodStart)
+        return budgets
+            .filter { it.periodStart == null || it.periodStart == periodStart || it.periodStart == labelled }
             .groupBy { it.categoryId }
             .mapNotNull { (_, rows) ->
-                val override = rows.firstOrNull { it.periodStart == periodStart }
+                val override = rows.firstOrNull { it.periodStart == periodStart || it.periodStart == labelled }
                 when {
                     override != null -> Effective(override, isOverride = true)
                     else -> rows.firstOrNull { it.periodStart == null }
@@ -34,6 +35,7 @@ object BudgetResolver {
                 }
             }
             .sortedBy { it.budget.categoryId ?: Long.MIN_VALUE }
+    }
 
     /**
      * The row an edit should write for [categoryId].
@@ -49,8 +51,9 @@ object BudgetResolver {
         periodStart: Long,
         thisCycleOnly: Boolean,
     ): Budget {
+        val labelled = Periods.labelledMonthStart(periodStart)
         val existing = if (thisCycleOnly) {
-            budgets.firstOrNull { it.categoryId == categoryId && it.periodStart == periodStart }
+            budgets.firstOrNull { it.categoryId == categoryId && (it.periodStart == periodStart || it.periodStart == labelled) }
         } else {
             budgets.firstOrNull { it.categoryId == categoryId && it.periodStart == null }
         }

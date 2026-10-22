@@ -41,15 +41,13 @@ data class BudgetProgress(
 class BudgetEvaluator(private val dao: FinanceDao) {
 
     /**
-     * The month the app is in now.
+     * The start of the cycle the app is in now.
      *
-     * This used to return the newest salary boundary. Left that way, the 80% alert that
-     * interrupts your phone would measure 31 Aug onward while the Budgets screen
-     * measured 1-30 September - two different answers for one budget, and the wrong one
-     * is the one that buzzes.
+     * Aligns with the active salary cycle from cycleState (or seed) so the 80%/100% alerts,
+     * widget, and Budgets screen measure the exact same cycle window.
      */
-    fun currentPeriodStart(now: Long = System.currentTimeMillis()): Long =
-        Periods.monthStartOf(now)
+    suspend fun currentPeriodStart(now: Long = System.currentTimeMillis()): Long =
+        dao.cycleState()?.cycleStartMillis ?: CycleCalculator.seed(now).cycleStartMillis
 
     suspend fun progress(periodStart: Long, periodEnd: Long): List<BudgetProgress> {
         val spending = dao.spendingBetween(periodStart, periodEnd)
@@ -83,18 +81,13 @@ class BudgetEvaluator(private val dao: FinanceDao) {
             .filter { it.categoryId == null }
             .sumOf { it.amountPaise }
 
-    /** Fires once per threshold per calendar month, not once per message. */
+    /** Fires once per threshold per salary cycle, not once per message. */
     suspend fun evaluateAndNotify(context: Context) {
         val now = System.currentTimeMillis()
         val periodStart = currentPeriodStart(now)
-        val periodEnd = CycleCalculator.startOfDayMillis(
-            CycleCalculator.toLocalDate(periodStart).plusMonths(1),
-        )
+        val periodEnd = now
         ensureChannel(context)
 
-        // Bounded by the month's end rather than left open: a limit was blown in
-        // September only if September's spending blew it, and an open upper bound would
-        // keep folding October in.
         progress(periodStart, periodEnd).forEach { p ->
             val threshold = when {
                 p.percent >= 100 -> 100

@@ -40,18 +40,29 @@ fun periodRangeText(period: Period): String {
 }
 
 /**
- * What to print under a month name, if anything.
+ * What to print under a cycle or month name.
  *
- * A finished month needs no gloss - "September, 2026" already says 1 to 30 September
- * and repeating it is noise. The month you are *in* is the exception: its figures cover
- * part of a month, and a total that will keep growing should say so rather than be read
- * as the month's final answer.
+ * For the open cycle, prints the elapsed range so far (e.g., "30 Sep - 5 Oct so far").
+ * For past cycles, prints the full date span (e.g., "28 Aug - 29 Sep").
  */
 fun monthSubtitle(period: Period, now: Long): String? {
-    if (!period.isOpen) return null
     val today = CycleCalculator.toLocalDate(now)
     val start = CycleCalculator.toLocalDate(period.startMillis)
-    return "1 - ${today.format(SHORT_DATE)} so far".takeIf { !today.isBefore(start) }
+    val startFormatted = start.format(SHORT_DATE)
+    return if (period.isOpen) {
+        val todayFormatted = today.format(SHORT_DATE)
+        if (today.isBefore(start)) {
+            "from $startFormatted"
+        } else if (start == today) {
+            "today so far"
+        } else {
+            "$startFormatted - $todayFormatted so far"
+        }
+    } else {
+        val end = CycleCalculator.toLocalDate(period.toExclusive).minusDays(1)
+        val endFormatted = end.format(SHORT_DATE)
+        "$startFormatted - $endFormatted"
+    }
 }
 
 /**

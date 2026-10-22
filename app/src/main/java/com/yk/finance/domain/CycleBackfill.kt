@@ -39,8 +39,6 @@ object CycleBackfill {
     )
 
     suspend fun run(dao: FinanceDao, now: Long) {
-        if (dao.boundaryCount() > 0) return
-
         val credits = dao.allCredits()
         val accounts = dao.allAccounts().associateBy { it.id }
         val candidates = credits.map { txn ->

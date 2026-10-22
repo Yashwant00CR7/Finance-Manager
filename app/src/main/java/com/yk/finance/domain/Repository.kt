@@ -707,6 +707,9 @@ class Repository(
         // to the amount rather than the whole row, because fixing a note or a date on
         // one part breaks nothing.
         if (existing.splitGroupId != null && amountPaise != existing.amountPaise) return
+        // A transfer leg's amount is fixed: editing one leg independently would desync
+        // the pair and drift account balances.
+        if (existing.transferGroupId != null && amountPaise != existing.amountPaise) return
         dao.adjustBalance(
             existing.accountId,
             if (existing.direction == Direction.DEBIT) existing.amountPaise else -existing.amountPaise,

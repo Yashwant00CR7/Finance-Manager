@@ -47,6 +47,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -85,7 +86,11 @@ private enum class Tab(val label: String) {
 /** Full-screen destinations that take over from the tabs. */
 private sealed interface Route {
     data object Tabs : Route
-    data class Entry(val txnId: Long?) : Route
+    data class Entry(
+        val txnId: Long?,
+        val initialType: TypeFilter? = null,
+        val initialAccountId: Long? = null,
+    ) : Route
     data object Search : Route
     data object Inbox : Route
     data object Import : Route
@@ -143,7 +148,11 @@ fun FinanceApp(app: FinanceApplication, widgetRoute: String? = null) {
     val lastAdded by vm.lastAdded.collectAsState()
     LaunchedEffect(lastAdded) {
         if (lastAdded == null) return@LaunchedEffect
-        val result = snackbar.showSnackbar(message = "Recorded", actionLabel = "Undo")
+        val result = snackbar.showSnackbar(
+            message = "Recorded",
+            actionLabel = "Undo",
+            duration = SnackbarDuration.Short,
+        )
         if (result == SnackbarResult.ActionPerformed) vm.undoLastAdd() else vm.clearUndo()
     }
 
@@ -165,13 +174,21 @@ fun FinanceApp(app: FinanceApplication, widgetRoute: String? = null) {
         val result = snackbar.showSnackbar(
             message = "$what → ${state.categoryName(it.categoryId)}$filed",
             actionLabel = "Undo",
+            duration = SnackbarDuration.Short,
         )
         if (result == SnackbarResult.ActionPerformed) vm.undoLearned() else vm.dismissLearned()
     }
 
     when (val current = route) {
         is Route.Entry -> {
-            EntryScreen(vm, state, txnId = current.txnId, onClose = { route = Route.Tabs })
+            EntryScreen(
+                vm = vm,
+                state = state,
+                txnId = current.txnId,
+                initialType = current.initialType,
+                initialAccountId = current.initialAccountId,
+                onClose = { route = Route.Tabs },
+            )
             return
         }
         Route.Search -> {
@@ -300,7 +317,17 @@ fun FinanceApp(app: FinanceApplication, widgetRoute: String? = null) {
                     )
                     Tab.ANALYSIS -> AnalysisScreen(vm)
                     Tab.BUDGETS -> BudgetsScreen(vm, state)
-                    Tab.ACCOUNTS -> AccountsScreen(vm, state)
+                    Tab.ACCOUNTS -> AccountsScreen(
+                        vm = vm,
+                        state = state,
+                        onSelfTransfer = { accountId ->
+                            route = Route.Entry(
+                                txnId = null,
+                                initialType = TypeFilter.TRANSFER,
+                                initialAccountId = accountId,
+                            )
+                        },
+                    )
                     Tab.CATEGORIES -> CategoriesScreen(vm, state)
                 }
             }
@@ -398,8 +425,18 @@ private fun AppHeader(
 
         when (tab) {
             Tab.BUDGETS -> {
-                val totalBudget = progress.filter { it.categoryId != null }.sumOf { it.limitPaise }
-                val totalSpent = progress.filter { it.categoryId != null }.sumOf { it.spentPaise }
+                val categoryBudgets = progress.filter { it.categoryId != null }
+                val overall = progress.firstOrNull { it.categoryId == null }
+                val totalBudget = if (categoryBudgets.isNotEmpty()) {
+                    categoryBudgets.sumOf { it.limitPaise }
+                } else {
+                    overall?.limitPaise ?: 0L
+                }
+                val totalSpent = if (categoryBudgets.isNotEmpty()) {
+                    categoryBudgets.sumOf { it.spentPaise }
+                } else {
+                    overall?.spentPaise ?: 0L
+                }
                 Row(Modifier.fillMaxWidth().padding(12.dp)) {
                     HeaderFigure("TOTAL BUDGET", formatRupees(totalBudget), MaterialTheme.colorScheme.onSurface, Modifier.weight(1f))
                     HeaderFigure("TOTAL SPENT", formatRupees(totalSpent), money.expense, Modifier.weight(1f))

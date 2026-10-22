@@ -1,0 +1,79 @@
+# Ralph Loop Progress Log
+Started: 2026-10-06 13:13:00
+Task File: PRD.md
+Backpressure: gradle testDebugUnitTest
+Status: Complete
+--------------------------------------------------
+[2026-10-06 13:14:30] Completed Task 1: Fix BudgetResolver.rowToWrite and add unit test
+- Changes: Updated `BudgetResolver.rowToWrite` to find existing overrides by either periodStart or labelledMonthStart; added unit test in `BudgetOverrideTest.kt`.
+- Verification: `gradle testDebugUnitTest --tests "com.yk.finance.BudgetOverrideTest"` passed (all 11 tests).
+--------------------------------------------------
+[2026-10-06 14:21:30] Completed Task 2: Align BudgetEvaluator with active salary cycle
+- Changes: Updated `BudgetEvaluator.currentPeriodStart` and `evaluateAndNotify` to measure the active salary cycle window (`cycleStartMillis` to `now`); added test in `SalaryCycleAndTransferTest.kt`.
+- Verification: `gradle testDebugUnitTest --tests "com.yk.finance.SalaryCycleAndTransferTest"` passed (all 6 tests).
+--------------------------------------------------
+[2026-10-06 14:25:00] Completed Task 3: Enforce transfer leg amount lock in UI & Repository
+- Changes: Locked amount editing for transfer legs in `EntryScreen.kt` (`!isTransferLeg`); rejected amount changes on transfer legs in `Repository.updateTransaction`; added tests in `SalaryCycleAndTransferTest.kt`.
+- Verification: `gradle testDebugUnitTest --tests "com.yk.finance.SalaryCycleAndTransferTest"` passed (all 7 tests).
+--------------------------------------------------
+[2026-10-06 14:26:00] Completed Task 4: Fix Budgets header & empty state for Overall budget
+- Changes: Updated `FinanceApp.kt` header to fall back to overall budget totals when category budgets are empty; improved `BudgetsScreen.kt` empty state message when overall budget exists.
+- Verification: `gradle testDebugUnitTest` passed.
+--------------------------------------------------
+[2026-10-06 14:27:00] Completed Task 5: Performance optimization with distinctUntilChanged & Settings salaryCycles
+- Changes: Aliased `FinanceViewModel.salaryCycles` to `periods` for complete cycle history in Settings; added `.distinctUntilChanged()` on `periods` and `period` to prevent redundant recompositions.
+- Verification: `gradle testDebugUnitTest` passed.
+--------------------------------------------------
+[2026-10-06 14:28:30] Completed Task 6: Handle reversed dates in monthSubtitle
+- Changes: In `Money.kt`, guarded `monthSubtitle` for open cycles where `today.isBefore(start)` by displaying `"from $startFormatted"`; added tests in `SalaryCycleAndTransferTest.kt`.
+- Verification: `gradle testDebugUnitTest` passed.
+--------------------------------------------------
+[2026-10-06 14:29:40] Completed Task 7: Full suite verification & APK build
+- Changes: Ran complete unit test suite; compiled `./FinanceManager-v2.7.0-debug.apk` via `gradle assembleDebug`.
+- Verification: All tests passed; APK generated at `./FinanceManager-v2.7.0-debug.apk`.
+--------------------------------------------------
+RALPH_COMPLETE
+
+
+==================================================
+# Ralph Loop: SMS Parser Fix, Generic Extraction & Template Learning
+Started: 2026-10-22 12:22:30
+Plan: .planning/phases/01-parser-and-learning/01-PLAN.md
+Backpressure: gradle testDebugUnitTest
+Status: In Progress
+==================================================
+[2026-10-22 12:26:50] Completed Task 1.1: Fix Union Bank Parser Rule and Generic Payee Extraction
+- Changes: Updated `UnionRule.TXN` in `BankRules.kt` to allow optional `for` and `Union Bank of India` prefix, enhanced `AVL_BAL` with rupee symbol, implemented generic `extractGenericPayee` in `Primitives.kt` and `PatternEngine.kt`.
+- Verification: `ParserTest` passed all test cases including reported real Union Bank SMS and generic payee patterns (`Fvg:`, `to`, `VPA`).
+- Commit: 58a3396
+--------------------------------------------------
+[2026-10-22 12:31:50] Completed Task 2.1: Robust Template Learning with Time, Direction, and Disclaimer Slots
+- Changes: Added `TIME_REGEX` variable slot to prevent hardcoding timestamps, added dual-direction capture slot `(?<dir>...)` matching both debits and credits, relaxed trailing disclaimers/helpline strings in `TemplateLearner.kt`, updated `toPatternSpec()` to handle dynamic direction.
+- Verification: All 5 tests in `TemplateLearnerTest` passed, including Union Bank template learning and future alerts across time variations, direction changes (Money Out / Money In), and disclaimer modifications.
+- Commit: 603c74d
+--------------------------------------------------
+[2026-10-22 12:33:55] Completed Task 3.1: Conservative Pre-filling in Inbox Review Card
+- Changes: Implemented `PreFillValues` and `extractPreFill` in `Detectors.kt` extracting non-balance currency amounts, explicit credit/debit signals, and generic payees; hooked into `ManualCard` in `InboxScreen.kt`. Added unit tests in `InboxPreFillTest.kt`.
+- Verification: `InboxPreFillTest` and full `gradle testDebugUnitTest` suite passed cleanly.
+- Commit: 5b3a6c0
+--------------------------------------------------
+[2026-10-22 12:34:55] Completed Task 3.2: Full Suite Verification & APK Compilation
+- Changes: Ran complete unit test suite across entire codebase; compiled `./FinanceManager-v2.7.0-debug.apk` without version bump as requested.
+- Verification: All tests passed cleanly; debug APK assembled at root `./FinanceManager-v2.7.0-debug.apk`.
+--------------------------------------------------
+RALPH_COMPLETE
+
+==================================================
+# Ralph Loop: Hard Stress Test Suite for Parser & Learning Lifecycle
+Started: 2026-10-22 12:59:15
+Plan: .planning/phases/02-hard-stress-tests/01-PLAN.md
+Backpressure: gradle testDebugUnitTest
+Status: In Progress
+==================================================
+[2026-10-22 13:04:40] Completed Phase 2: Hard Stress Test Suite for Parser and Learning Lifecycle
+- Changes: Implemented comprehensive stress battery in `ParserAndLearningStressTest.kt` (lakhs formatting, payees with initials/slashes/dots, high numeric density, irregular whitespace, defensive declined/failed/mandate/fraud guards, and end-to-end learning lifecycle with direction switching and anti-phishing isolation).
+- Delimiter Refinement: Upgraded `GENERIC_PAYEE_PATTERNS` in `Primitives.kt` so initials like `MR.`, `DR.`, and `PVT. LTD.` are never prematurely truncated.
+- Verification: 100% of stress tests and full test suite passed cleanly. APK re-assembled at `./FinanceManager-v2.7.0-debug.apk`.
+- Commit: 2fc5f42
+--------------------------------------------------
+RALPH_COMPLETE

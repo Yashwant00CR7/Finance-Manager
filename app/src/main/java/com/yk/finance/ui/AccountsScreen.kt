@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -56,7 +57,11 @@ import com.yk.finance.ui.theme.LocalMoneyColors
  * money that was never earned.
  */
 @Composable
-fun AccountsScreen(vm: FinanceViewModel, state: UiState) {
+fun AccountsScreen(
+    vm: FinanceViewModel,
+    state: UiState,
+    onSelfTransfer: (accountId: Long?) -> Unit = {},
+) {
     val overall by vm.overall.collectAsState()
     val owed by vm.owed.collectAsState()
     var settling by remember { mutableStateOf<Splitter.Owed?>(null) }
@@ -187,12 +192,32 @@ fun AccountsScreen(vm: FinanceViewModel, state: UiState) {
         }
 
         item {
-            Text(
-                "Accounts",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, top = 8.dp),
-            )
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "Accounts",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                TextButton(onClick = { onSelfTransfer(null) }) {
+                    Icon(
+                        Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = money.income,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Self transfer",
+                        color = money.income,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
 
         items(state.accounts, key = { it.id }) { account ->
@@ -235,6 +260,13 @@ fun AccountsScreen(vm: FinanceViewModel, state: UiState) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Account options")
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Self transfer") },
+                                onClick = {
+                                    menuOpen = false
+                                    onSelfTransfer(account.id)
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text("Rename, icon and colour") },
                                 onClick = { menuOpen = false; editing = account },
