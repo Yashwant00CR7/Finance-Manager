@@ -87,6 +87,48 @@ class ParserTest {
         "A/c *8317 Debited for Rs:70.00 on 15-05-2026 10:57:50 by Mob Bk ref no 178899001122 " +
             "Avl Bal Rs:912.68.If not you, Call 1800222243 -Union Bank of India"
 
+    private val REAL_UNION_DEBIT_USER =
+        "Union Bank of India A/c *2209 Debited Rs:1755.00 on 22-10-2026 10:40:05 by Mob Bk ref no 629576250805, " +
+            "Fvg: AONE TRA Avl Bal Rs:5328.67. Not you?Call 18002333/SMS BLOCK 2209 to 8879365472"
+
+    @Test
+    fun `real Union debit without for keyword and with Fvg payee parses correctly`() {
+        val sms = parsed("JM-UNIONB-T", REAL_UNION_DEBIT_USER)
+        assertNotNull("Union debit with Fvg payee must parse", sms)
+        assertEquals(Direction.DEBIT, sms!!.direction)
+        assertEquals(175500L, sms.amountPaise)
+        assertEquals("2209", sms.accountToken)
+        assertEquals("AONE TRA", sms.payee)
+        assertEquals("629576250805", sms.reference)
+        assertEquals(532867L, sms.availableBalancePaise)
+    }
+
+    @Test
+    fun `Union credit without for keyword and with Fvg payee parses correctly`() {
+        val body = "Union Bank of India A/c *2209 Credited Rs:2500.00 on 22-10-2026 11:15:00 by Mob Bk ref no 778899112233, " +
+            "Fvg: RAMESH ENTERPRISES Avl Bal Rs:7828.67. Not you?Call 18002333"
+        val sms = parsed("JM-UNIONB-T", body)
+        assertNotNull("Union credit with Fvg payee must parse", sms)
+        assertEquals(Direction.CREDIT, sms!!.direction)
+        assertEquals(250000L, sms.amountPaise)
+        assertEquals("2209", sms.accountToken)
+        assertEquals("RAMESH ENTERPRISES", sms.payee)
+        assertEquals("778899112233", sms.reference)
+        assertEquals(782867L, sms.availableBalancePaise)
+    }
+
+    @Test
+    fun `generic payee extraction handles Fvg, to, and VPA formats`() {
+        val fvgBody = "A/c *1234 debited for Rs 100.00 on 01-Jan-26, Fvg: COFFEE SHOP Avl Bal Rs 500.00"
+        assertEquals("COFFEE SHOP", com.yk.finance.parser.extractGenericPayee(fvgBody))
+
+        val toBody = "Rs.250.00 debited from A/c XX5678 on 02-Jan-26 to RELIANCE SMART via UPI ref 123456"
+        assertEquals("RELIANCE SMART", com.yk.finance.parser.extractGenericPayee(toBody))
+
+        val vpaBody = "Rs 40.00 paid from A/c XX9999 to merchant VPA payment@okhdfcbank ref 998877"
+        assertEquals("payment@okhdfcbank", com.yk.finance.parser.extractGenericPayee(vpaBody))
+    }
+
     @Test
     fun `real Union messages parse despite containing OTP and If-not-you trailers`() {
         // Regression guard: blocklisting "OTP" or "If not you" would reject every

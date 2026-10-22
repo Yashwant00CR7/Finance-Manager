@@ -1,7 +1,7 @@
 package com.yk.finance.parser
 
 private val AVL_BAL = Regex(
-    """Avl\.?\s*(?:able)?\s*Bal(?:ance)?[:\s]*(?:Rs|INR)\.?:?\s*([0-9][0-9,]*(?:\.\d{1,2})?)""",
+    """Avl\.?\s*(?:able)?\s*Bal(?:ance)?[:\s]*(?:Rs|INR|₹)\.?:?\s*([0-9][0-9,]*(?:\.\d{1,2})?)""",
     RegexOption.IGNORE_CASE,
 )
 
@@ -125,7 +125,7 @@ object UnionRule : BankRule {
     private val SENDER = Regex("""UNIONB|UNION|UBIN""", RegexOption.IGNORE_CASE)
 
     private val TXN = Regex(
-        """A/c\s+\*+(\d+)\s+(Debited|Credited)\s+for\s+(?:Rs|INR)\.?:?\s*$AMT\s+on\s+(\d{2}-\d{2}-\d{4})(?:\s+(\d{2}:\d{2}:\d{2}))?""",
+        """(?:Union\s+Bank(?:\s+of\s+India)?\s+)?A/c\s+[X*]*(\d+)\s+(Debited|Credited)\s+(?:for\s+)?(?:Rs|INR|₹)\.?:?\s*$AMT\s+on\s+(\d{2}-\d{2}-\d{4})(?:\s+(\d{2}:\d{2}:\d{2}))?""",
         RegexOption.IGNORE_CASE,
     )
     private val REF = Regex("""ref\s*no\.?\s*(\d{6,})""", RegexOption.IGNORE_CASE)
@@ -147,9 +147,7 @@ object UnionRule : BankRule {
             direction = if (m.groupValues[2].equals("Debited", true)) Direction.DEBIT else Direction.CREDIT,
             amountPaise = amount,
             occurredAt = occurred,
-            // Union names the channel ("Mob Bk"), never a payee. Nothing to categorise
-            // on, which is why these land as Uncategorised until you teach them.
-            payee = BY_CHANNEL.find(body)?.groupValues?.get(1)?.trim(),
+            payee = extractGenericPayee(body) ?: BY_CHANNEL.find(body)?.groupValues?.get(1)?.trim(),
             reference = REF.find(body)?.groupValues?.get(1),
             availableBalancePaise = AVL_BAL.find(body)?.groupValues?.get(1)?.let(::parseAmountToPaise),
             channel = detectChannel(body),

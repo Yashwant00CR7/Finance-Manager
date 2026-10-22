@@ -83,6 +83,7 @@ internal fun applySpec(
 
     val payee = match.named("payee", declared)?.trim()?.takeIf { it.isNotBlank() }
         ?: firstCapture(spec.payeePatterns, body)
+        ?: extractGenericPayee(body)
 
     val reference = match.named("ref", declared)?.trim()?.takeIf { it.isNotBlank() }
         ?: firstCapture(spec.refPatterns, body)

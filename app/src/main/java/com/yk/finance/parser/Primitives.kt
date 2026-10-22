@@ -126,3 +126,29 @@ internal fun startOfDayIst(epochMillis: Long): Long = Calendar.getInstance(IST).
 }.timeInMillis
 
 internal fun istCalendar(): Calendar = Calendar.getInstance(IST)
+
+/**
+ * Generic payee extraction across all banks for standard patterns such as:
+ * - "Fvg: AONE TRA" ("Favoring")
+ * - "to <Payee>"
+ * - "VPA <upi-id>"
+ */
+internal val GENERIC_PAYEE_PATTERNS = listOf(
+    Regex("""\bFvg:?\s*([^,.\n]+?)(?:\s+(?:Avl\s+)?Bal\b|[.,\n]|$)""", RegexOption.IGNORE_CASE),
+    Regex("""\b(?:to|towards)\s+([A-Za-z0-9][A-Za-z0-9\s.&'-]{1,30}?)(?:\s+(?:on|via|ref|bal|using|avl|ref\s*no\b|through)|[.,\n]|$)""", RegexOption.IGNORE_CASE),
+    Regex("""\b(?:VPA|vpa)\s+([a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+)""", RegexOption.IGNORE_CASE),
+)
+
+internal fun extractGenericPayee(body: String): String? {
+    for (pattern in GENERIC_PAYEE_PATTERNS) {
+        val m = pattern.find(body)
+        if (m != null && m.groupValues.size > 1) {
+            val candidate = m.groupValues[1].trim()
+            if (candidate.isNotEmpty() && !candidate.equals("your", ignoreCase = true) && !candidate.equals("a/c", ignoreCase = true)) {
+                return candidate
+            }
+        }
+    }
+    return null
+}
+
