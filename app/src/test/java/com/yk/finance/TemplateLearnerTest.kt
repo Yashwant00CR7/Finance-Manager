@@ -30,6 +30,14 @@ class TemplateLearnerTest {
         kind = AccountKind.CREDIT_CARD,
     )
 
+    private val unionAccount = Account(
+        id = 3,
+        displayName = "Union Bank ..2209",
+        bank = "UNION",
+        accountToken = "2209",
+        kind = AccountKind.BANK,
+    )
+
     @Test
     fun `learns a debit template and matches a future similar message with different values`() {
         val originalMessage = "Dear UPI user A/C X0208 debited by 500.0 on 26Sep26 tran id 426912345678 to Swiggy. If not you, call 1800111109 -SBI"
@@ -90,5 +98,87 @@ class TemplateLearnerTest {
         assertEquals("4321", parsed.accountToken)
         assertEquals("FLIPKART", parsed.payee)
         assertTrue(parsed.isCard)
+    }
+
+    @Test
+    fun `learns from Union Bank message and parses future alert with different time, amount, and date`() {
+        val userMsg = "Union Bank of India A/c *2209 Debited Rs:1755.00 on 22-10-2026 10:40:05 by Mob Bk ref no 629576250805, " +
+            "Fvg: AONE TRA Avl Bal Rs:5328.67. Not you?Call 18002333/SMS BLOCK 2209 to 8879365472"
+
+        val learned = TemplateLearner.learn(
+            rawMessage = userMsg,
+            amountPaise = 175500L,
+            direction = Direction.DEBIT,
+            account = unionAccount,
+            payee = "AONE TRA",
+        )
+
+        assertNotNull("Template should be learned from user input", learned)
+        val spec = learned!!.toPatternSpec()
+
+        // Test with different date, time, ref, amount, and payee
+        val futureAlert = "Union Bank of India A/c *2209 Debited Rs:340.50 on 23-10-2026 18:22:45 by Mob Bk ref no 998811223344, " +
+            "Fvg: COFFEE CAFE Avl Bal Rs:4988.17. Not you?Call 18002333/SMS BLOCK 2209 to 8879365472"
+
+        val parsed = applySpec(spec, futureAlert, 1729680000000L, bank = "UNION")
+        assertNotNull("Future alert with different time and amount must parse", parsed)
+        assertEquals(34050L, parsed!!.amountPaise)
+        assertEquals("2209", parsed.accountToken)
+        assertEquals("COFFEE CAFE", parsed.payee)
+        assertEquals(Direction.DEBIT, parsed.direction)
+        assertEquals("998811223344", parsed.reference)
+        assertEquals(498817L, parsed.availableBalancePaise)
+    }
+
+    @Test
+    fun `learned template with direction slot handles both money out and money in`() {
+        val debitMsg = "Union Bank of India A/c *2209 Debited Rs:1755.00 on 22-10-2026 10:40:05 by Mob Bk ref no 629576250805, " +
+            "Fvg: AONE TRA Avl Bal Rs:5328.67. Not you?Call 18002333"
+
+        val learned = TemplateLearner.learn(
+            rawMessage = debitMsg,
+            amountPaise = 175500L,
+            direction = Direction.DEBIT,
+            account = unionAccount,
+            payee = "AONE TRA",
+        )
+        assertNotNull(learned)
+        val spec = learned!!.toPatternSpec()
+
+        // Future CREDIT (Money in) alert using the same format
+        val creditAlert = "Union Bank of India A/c *2209 Credited Rs:10000.00 on 24-10-2026 09:12:00 by Mob Bk ref no 112233445566, " +
+            "Fvg: SALARY CORP Avl Bal Rs:15328.67. Not you?Call 18002333"
+
+        val parsed = applySpec(spec, creditAlert, 1729750000000L, bank = "UNION")
+        assertNotNull("Credit alert on learned template must parse", parsed)
+        assertEquals(Direction.CREDIT, parsed!!.direction)
+        assertEquals(1000000L, parsed.amountPaise)
+        assertEquals("SALARY CORP", parsed.payee)
+        assertEquals(1532867L, parsed.availableBalancePaise)
+    }
+
+    @Test
+    fun `learned template matches future message even if disclaimer trailer changes or is omitted`() {
+        val origMsg = "Union Bank of India A/c *2209 Debited Rs:1755.00 on 22-10-2026 10:40:05 by Mob Bk ref no 629576250805, " +
+            "Fvg: AONE TRA Avl Bal Rs:5328.67. Not you?Call 18002333/SMS BLOCK 2209 to 8879365472"
+
+        val learned = TemplateLearner.learn(
+            rawMessage = origMsg,
+            amountPaise = 175500L,
+            direction = Direction.DEBIT,
+            account = unionAccount,
+            payee = "AONE TRA",
+        )
+        assertNotNull(learned)
+        val spec = learned!!.toPatternSpec()
+
+        // Future message has a completely different helpline disclaimer trailer
+        val changedTrailerAlert = "Union Bank of India A/c *2209 Debited Rs:500.00 on 25-10-2026 12:00:00 by Mob Bk ref no 445566778899, " +
+            "Fvg: STORE Avl Bal Rs:4828.67. If not you, Call 1800999999 immediately"
+
+        val parsed = applySpec(spec, changedTrailerAlert, 1729850000000L, bank = "UNION")
+        assertNotNull("Message with changed disclaimer trailer must parse", parsed)
+        assertEquals(50000L, parsed!!.amountPaise)
+        assertEquals("STORE", parsed.payee)
     }
 }
