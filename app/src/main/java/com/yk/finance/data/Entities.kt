@@ -352,3 +352,39 @@ data class LearnedPattern(
     val isCard: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
 )
+
+/**
+ * A second set of digits that belongs to an account you already have.
+ *
+ * Banks do not print one number per account. A debit card spend arrives as "Card XX5678"
+ * while the savings account it draws on is "Acct XX742", and two accounts you merged were
+ * two identities until you said otherwise. Without this, the next message carrying the
+ * other digits would create a fresh account beside the one you meant, and the money
+ * would land in the wrong place every time.
+ *
+ * Written only from something you did - merging, binding, or filing a message against an
+ * account of the same bank - never guessed.
+ */
+@Entity(tableName = "account_aliases", primaryKeys = ["bank", "accountToken"])
+data class AccountAlias(
+    val bank: String,
+    val accountToken: String,
+    val accountId: Long,
+)
+
+/**
+ * An account whose messages you asked the app to stop recording.
+ *
+ * Deleting an account the bank keeps messaging about is otherwise undone by the next
+ * message, which creates it again. This is what makes "not mine" stick - a parent's
+ * account that alerts your number, a card you closed. Held by the bank's identity rather
+ * than by account id, because the account it described is gone.
+ */
+@Entity(tableName = "ignored_accounts", primaryKeys = ["bank", "accountToken"])
+data class IgnoredAccount(
+    val bank: String,
+    val accountToken: String,
+    /** The name it had when you switched it off, so Settings can say what it was. */
+    val displayName: String,
+    val ignoredAt: Long,
+)

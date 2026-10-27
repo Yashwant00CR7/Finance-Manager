@@ -57,14 +57,18 @@ object IciciRule : BankRule {
     private val SENDER = Regex("""ICICI|ICICIB""", RegexOption.IGNORE_CASE)
 
     // "Acct XX742 debited for Rs 169.00 on 11-Sep-26"  (verified)
+    //
+    // The sentence is the verified one. What is tolerated around it is only the tokens banks
+    // swap without changing the sentence: the rupee sign for "Rs", a four-digit year, a
+    // third X in the mask. Any of those used to send a perfectly ordinary payment to the tray.
     private val DEBIT_FOR = Regex(
-        """Acct\s+XX(\d+)\s+debited\s+for\s+(?:Rs|INR)\.?:?\s*$AMT\s+on\s+(\d{1,2}-[A-Za-z]{3}-\d{2})""",
+        """Acct\s+[Xx*]*(\d+)\s+debited\s+for\s+$CURRENCY\s*$AMT\s+on\s+(\d{1,2}-[A-Za-z]{3}-\d{2,4})""",
         RegexOption.IGNORE_CASE,
     )
 
     // "Acct XX742 is credited with Rs 3000.00 on 17-Sep-26"  (verified)
     private val CREDIT_WITH = Regex(
-        """Acct\s+XX(\d+)\s+is\s+credited\s+with\s+(?:Rs|INR)\.?:?\s*$AMT\s+on\s+(\d{1,2}-[A-Za-z]{3}-\d{2})""",
+        """Acct\s+[Xx*]*(\d+)\s+is\s+credited\s+with\s+$CURRENCY\s*$AMT\s+on\s+(\d{1,2}-[A-Za-z]{3}-\d{2,4})""",
         RegexOption.IGNORE_CASE,
     )
 
@@ -72,6 +76,12 @@ object IciciRule : BankRule {
     private val PAYEE_DEBIT = Regex(""";\s*(.+?)\s+credited""", RegexOption.IGNORE_CASE)
     private val PAYEE_CREDIT = Regex("""\bfrom\s+([^.;]+?)\s*[.;]""", RegexOption.IGNORE_CASE)
     private val REF = Regex("""UPI[:\s]*(\d{6,})""", RegexOption.IGNORE_CASE)
+
+    // A transfer between your own accounts goes by IMPS or NEFT and carries its reference
+    // here instead: "& Acct XX123 credited. IMPS:626112345678". Without it the debit could
+    // never be paired with the credit on the other side, and the move between your own
+    // accounts was counted as 5,000 spent and 5,000 earned.
+    private val TRANSFER_REF = Regex("""\b(?:IMPS|NEFT|RTGS|RRN)[:\s]*(?=[A-Z]*\d)([A-Z0-9]{6,})""", RegexOption.IGNORE_CASE)
     private val INFO = Regex("""Info[:\s]+([^.]+)""", RegexOption.IGNORE_CASE)
 
     override fun claims(sender: String, body: String) =
@@ -100,7 +110,7 @@ object IciciRule : BankRule {
             amountPaise = amount,
             occurredAt = occurred,
             payee = payee,
-            reference = REF.find(body)?.groupValues?.get(1),
+            reference = (REF.find(body) ?: TRANSFER_REF.find(body))?.groupValues?.get(1),
             availableBalancePaise = AVL_BAL.find(body)?.groupValues?.get(1)?.let(::parseAmountToPaise),
             channel = detectChannel(body),
             raw = body,
@@ -124,11 +134,18 @@ object UnionRule : BankRule {
     private val MENTIONS = Regex("""Union\s+Bank""", RegexOption.IGNORE_CASE)
     private val SENDER = Regex("""UNIONB|UNION|UBIN""", RegexOption.IGNORE_CASE)
 
+    // The direction word stays bound to our own account clause; what is tolerated is the
+    // filler banks put between the two ("is", "has been") and the two-digit year and slashes
+    // some of Union's templates use. Each of those used to drop to the generic tier, which
+    // never books, so an ordinary Union payment waited in the tray.
     private val TXN = Regex(
-        """(?:Union\s+Bank(?:\s+of\s+India)?\s+)?A/c\s+[X*]*(\d+)\s+(Debited|Credited)\s+(?:for\s+)?(?:Rs|INR|₹)\.?:?\s*$AMT\s+on\s+(\d{2}-\d{2}-\d{4})(?:\s+(\d{2}:\d{2}:\d{2}))?""",
+        """(?:Union\s+Bank(?:\s+of\s+India)?\s+)?A/c\s+(?:No\.?\s*)?[Xx*]*(\d+)\s+(?:is\s+|has\s+been\s+)?(Debited|Credited)\s+(?:for\s+|with\s+|by\s+)?$CURRENCY\s*$AMT\s+on\s+(\d{2}[-/]\d{2}[-/]\d{2,4})(?:\s+(\d{2}:\d{2}:\d{2}))?""",
         RegexOption.IGNORE_CASE,
     )
-    private val REF = Regex("""ref\s*no\.?\s*(\d{6,})""", RegexOption.IGNORE_CASE)
+
+    // NEFT references are alphanumeric ("SBIN426303123456"), and a digits-only pattern
+    // silently left every NEFT credit with no reference to deduplicate on.
+    private val REF = Regex("""ref\s*no\.?\s*(?=[A-Z]*\d)([A-Z0-9]{6,})""", RegexOption.IGNORE_CASE)
     private val BY_CHANNEL = Regex("""\bby\s+(.+?)\s+ref\s*no""", RegexOption.IGNORE_CASE)
 
     override fun claims(sender: String, body: String) =
@@ -141,13 +158,19 @@ object UnionRule : BankRule {
             parseUnionDate(m.groupValues[4], m.groupValues.getOrNull(5)),
             receivedAt,
         )
+        val direction = if (m.groupValues[2].equals("Debited", true)) Direction.DEBIT else Direction.CREDIT
         return ParsedSms(
             bank = bank,
             accountToken = m.groupValues[1],
-            direction = if (m.groupValues[2].equals("Debited", true)) Direction.DEBIT else Direction.CREDIT,
+            direction = direction,
             amountPaise = amount,
             occurredAt = occurred,
-            payee = extractGenericPayee(body) ?: BY_CHANNEL.find(body)?.groupValues?.get(1)?.trim(),
+            // "by Mob Bk" names the channel, not who was paid. Used as a debit's payee it made
+            // one category rule out of every Union payment without a Fvg clause - file one as
+            // Food and the next fifty were Food. Credits keep it, because a salary tagged
+            // while it read "NEFT" is matched against that text when the next one lands.
+            payee = extractGenericPayee(body, direction)
+                ?: BY_CHANNEL.find(body)?.groupValues?.get(1)?.trim()?.takeIf { direction == Direction.CREDIT },
             reference = REF.find(body)?.groupValues?.get(1),
             availableBalancePaise = AVL_BAL.find(body)?.groupValues?.get(1)?.let(::parseAmountToPaise),
             channel = detectChannel(body),

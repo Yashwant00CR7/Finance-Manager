@@ -25,6 +25,23 @@ private fun isBankHeader(sender: String): Boolean {
 }
 
 /**
+ * Which bank a message is from, as one string that a template learned from it can be
+ * filed under - or null when the sender cannot be a bank at all.
+ *
+ * The order is the parser's own: the registered header, then a hand-written rule's claim,
+ * then the bank the message names. For a bank none of those know - a co-operative bank,
+ * a regional rural bank - the sender's own header stands in, so its learned templates stay
+ * with its messages and never reach another bank's.
+ */
+fun senderBankKey(sender: String, body: String): String? {
+    if (!isBankHeader(sender)) return null
+    return bankForSender(sender)
+        ?: ALL_BANK_RULES.firstOrNull { it.claims(sender, body) }?.bank
+        ?: bankMentionedIn(body)
+        ?: normalizeHeader(sender)
+}
+
+/**
  * The parser: on-device, offline, deterministic.
  *
  * Three tiers are tried in order, and the order is the whole design.
@@ -48,7 +65,15 @@ class RuleBasedParser(
     private val generic: List<PatternSpec> = GENERIC_PATTERNS,
 ) : TransactionParser {
 
-    override fun parse(sender: String, body: String, receivedAt: Long): ParseResult {
+    override fun parse(sender: String, body: String, receivedAt: Long): ParseResult =
+        parse(sender, body, receivedAt, emptyList())
+
+    override fun parse(
+        sender: String,
+        body: String,
+        receivedAt: Long,
+        learned: List<PatternSpec>,
+    ): ParseResult {
         if (!isBankHeader(sender)) {
             return ParseResult.Ignored("sender '$sender' is not a bank header")
         }
@@ -69,6 +94,20 @@ class RuleBasedParser(
         describesFutureOrOffer(body)?.let { reason ->
             return ParseResult.Ignored(reason)
         }
+
+        // Templates learned on this device, first: each is a sentence the person holding the
+        // phone filed by hand or confirmed, so it is the most specific thing the app knows.
+        //
+        // They used to be tried by the ingestor before any of this ran - before the sender
+        // check and before the line above - against every message from anyone. A learned
+        // template books unattended, so a text from a personal number that copied one of
+        // your bank's alerts went straight into the ledger. They now sit behind the same two
+        // gates as everything else, and only the sending bank's own templates are tried.
+        val key = bank ?: normalizeHeader(sender)
+        learned.asSequence()
+            .filter { it.bank.equals(key, ignoreCase = true) }
+            .firstNotNullOfOrNull { applySpec(it, body, receivedAt) }
+            ?.let { return ParseResult.Parsed(it) }
 
         bankRule?.tryParse(body, receivedAt)?.let { return ParseResult.Parsed(it) }
 

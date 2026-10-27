@@ -43,6 +43,46 @@ interface FinanceDao {
     @Query("UPDATE transactions SET accountId = :toAccountId WHERE accountId = :fromAccountId")
     suspend fun reassignTransactions(fromAccountId: Long, toAccountId: Long)
 
+    /** Everything recorded on one account, which is what deleting it has to deal with. */
+    @Query("SELECT * FROM transactions WHERE accountId = :accountId")
+    suspend fun txnsForAccount(accountId: Long): List<Txn>
+
+    // ----- other digits an account answers to, and accounts switched off -----
+
+    @Query("SELECT * FROM account_aliases WHERE bank = :bank AND accountToken = :token LIMIT 1")
+    suspend fun aliasFor(bank: String, token: String): AccountAlias?
+
+    @Query("SELECT * FROM account_aliases WHERE accountId = :accountId")
+    suspend fun aliasesOf(accountId: Long): List<AccountAlias>
+
+    @Query("SELECT * FROM account_aliases ORDER BY bank, accountToken")
+    fun observeAliases(): Flow<List<AccountAlias>>
+
+    /** REPLACE: re-pointing digits at a different account is exactly what a second merge does. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAlias(alias: AccountAlias)
+
+    @Query("UPDATE account_aliases SET accountId = :toAccountId WHERE accountId = :fromAccountId")
+    suspend fun repointAliases(fromAccountId: Long, toAccountId: Long)
+
+    @Query("DELETE FROM account_aliases WHERE accountId = :accountId")
+    suspend fun deleteAliasesOf(accountId: Long)
+
+    @Query("DELETE FROM account_aliases WHERE bank = :bank AND accountToken = :token")
+    suspend fun deleteAlias(bank: String, token: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun ignoreAccount(account: IgnoredAccount)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM ignored_accounts WHERE bank = :bank AND accountToken = :token)")
+    suspend fun isAccountIgnored(bank: String, token: String): Boolean
+
+    @Query("SELECT * FROM ignored_accounts ORDER BY ignoredAt DESC")
+    fun observeIgnoredAccounts(): Flow<List<IgnoredAccount>>
+
+    @Query("DELETE FROM ignored_accounts WHERE bank = :bank AND accountToken = :token")
+    suspend fun unignoreAccount(bank: String, token: String)
+
     // ----- transactions -----
     @Insert
     suspend fun insertTxn(txn: Txn): Long
@@ -277,6 +317,10 @@ interface FinanceDao {
 
     @Query("SELECT * FROM pending_reviews ORDER BY receivedAt DESC")
     fun observeReviews(): Flow<List<PendingReview>>
+
+    /** Oldest first, so a backlog files in the order the bank sent it. */
+    @Query("SELECT * FROM pending_reviews ORDER BY receivedAt")
+    suspend fun allReviews(): List<PendingReview>
 
     @Query("SELECT COUNT(*) FROM pending_reviews")
     fun observeReviewCount(): Flow<Int>

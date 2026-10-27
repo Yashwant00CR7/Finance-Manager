@@ -3,11 +3,27 @@ package com.yk.finance.domain
 import com.yk.finance.data.Account
 import com.yk.finance.data.AccountKind
 import com.yk.finance.data.LearnedPattern
+import com.yk.finance.parser.BalanceMeaning
+import com.yk.finance.parser.DIRECTION_WORDS
 import com.yk.finance.parser.Direction
 import com.yk.finance.parser.PatternSpec
 import com.yk.finance.parser.Tier
 import com.yk.finance.parser.applySpec
+import com.yk.finance.parser.extractGenericPayee
 import com.yk.finance.parser.parseAmountToPaise
+import com.yk.finance.parser.parseIndianDate
+
+/**
+ * Whether a stored template may still be matched against messages.
+ *
+ * Earlier versions fell back, when a template would not fit, to a "relaxed" one: the first
+ * three words, then `.*?` to the amount and `.*?` to any account digits, with the direction
+ * fixed. It matched any message from that bank that opened the same way - a credit as
+ * readily as the debit it was learned from - and booked it unattended as a debit. Those
+ * rows are left in the database, since they record something you did, but never matched
+ * again. [TemplateLearner] no longer writes `.*?` anywhere, so the marker is unambiguous.
+ */
+fun LearnedPattern.isUsable(): Boolean = !regex.contains(".*?")
 
 /**
  * Converts a [LearnedPattern] database row into an executable [PatternSpec].
@@ -22,6 +38,8 @@ fun LearnedPattern.toPatternSpec(): PatternSpec {
         tier = Tier.VERIFIED,
         direction = if (hasDirGroup) null else direction,
         regex = Regex(regex, RegexOption.IGNORE_CASE),
+        // A card alert's balance-shaped figure is the remaining limit. See BalanceMeaning.
+        balanceMeaning = if (isCard) BalanceMeaning.AVAILABLE_CREDIT else BalanceMeaning.ACCOUNT_BALANCE,
         isCard = isCard,
     )
 }
@@ -33,237 +51,282 @@ fun LearnedPattern.toPatternSpec(): PatternSpec {
  * replaces them with named capture groups, and escapes the invariant sentence structure
  * into a regex. Future alerts following this sentence structure will match automatically
  * and book into the ledger without needing human intervention.
+ *
+ * ## What a template keeps, and what it lets go
+ *
+ * A template is only worth having if the bank's next message matches it, and the next
+ * message differs in more than the obvious slots. So the sentence is kept and everything
+ * that drifts is loosened:
+ *
+ *  - every run of digits left in the fixed text matches any digits - a helpline number, a
+ *    "1800-APEX", a second amount nobody slotted;
+ *  - whitespace either side of a slot is optional, so "Rs:1755" and "Rs: 1755" both read;
+ *  - only the last four words before the first slot are kept, because greetings vary;
+ *  - nothing after the last slot is kept at all, because that is where banks put the
+ *    helpline, the dispute line and the "never share your OTP" line, and they change those
+ *    without changing anything that matters.
+ *
+ * What it never does is fall back to something looser when the sentence will not fit. A
+ * template that cannot reproduce the message it was learned from is not learned.
  */
 object TemplateLearner {
 
-    private val DATE_REGEX = Regex(
-        """\b(?:\d{1,2}[-/.][A-Za-z0-9]{2,3}[-/.]\d{2,4}|\d{1,2}[A-Za-z]{3}\d{2,4})\b""",
-    )
+    const val ID_PREFIX = "LEARNED."
 
-    private val TIME_REGEX = Regex(
-        """\b\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?\b""",
-    )
+    private const val AMOUNT_SLOT = """(?<amount>\d+(?:,\d+)*(?:\.\d{1,2})?)"""
+    private const val ACCT_SLOT = """[Xx*.-]*(?<acct>\d{3,})"""
+    private const val DATE_SLOT =
+        """(?<date>\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/ ]?[A-Za-z]{3}[-/ ]?\d{2,4}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})"""
+    private const val TIME_SLOT = """(?<time>\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)"""
+    private const val REF_SLOT = """(?<ref>[A-Z0-9]{6,22})"""
+    private const val BAL_SLOT = """(?<bal>\d+(?:,\d+)*(?:\.\d{1,2})?)"""
+    private const val PAYEE = "payee"
 
-    private val REF_PATTERNS = listOf(
-        Regex("""\b(?:UPI\s*Ref(?:erence)?\s*(?:No\.?)?|UPI|RRN|UTR|ref(?:erence)?\s*(?:no\.?|id|#)?|(?:txn|tran)\s*(?:id|no\.?)?)[:\s.-]*([A-Z0-9]{6,22})\b""", RegexOption.IGNORE_CASE),
-    )
+    /** Every word [DIRECTION_WORDS] understands, longest first so "debited" wins over "debit". */
+    private val DIR_SLOT = "(?<dir>" + DIRECTION_WORDS.keys.sortedByDescending { it.length }.joinToString("|") + ")"
 
-    private val BALANCE_REGEX = Regex(
-        """\b(?:Avl|Avb|Avbl|Avlbl|Avail|Available|Clear|Clr|Current|Final|Total|New)?\s*Bal(?:ance)?(?:\s+is)?[-:\s]*(?:Rs|INR|₹)?\.?:?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)\b""",
+    /**
+     * Where a direction slot may go: verbs only, never "debit" or "credit". Those are nearly
+     * always nouns - "Debit Card", "Credit Alert!" - and a slot on "Debit Card" would read
+     * the same bank's "Credit Card" alert as money coming in.
+     */
+    private val DEBIT_WORDS = listOf("debited", "spent", "paid", "withdrawn", "deducted", "sent", "dr")
+    private val CREDIT_WORDS = listOf("credited", "received", "deposited", "cr")
+
+    /** A number as printed. Not the tail of another one: "12.345" holds no "345". */
+    private val NUMBER = Regex("""(?<![\d,]|\d\.)\d+(?:,\d+)*(?:\.\d{1,2})?(?!\d)""")
+    private val CURRENCY_BEFORE = Regex("""(?:Rs|INR|₹)\.?:?\s*$""", RegexOption.IGNORE_CASE)
+    private val BALANCE_BEFORE = Regex("""Bal(?:ance)?(?:\s+is)?[-:\s]*(?:Rs|INR|₹)?\.?:?\s*$""", RegexOption.IGNORE_CASE)
+
+    private val STANDALONE_DIGITS = Regex("""(?<!\d)\d{3,}(?!\d)""")
+
+    /** What stands right before an account number: a mask, or the word for one. */
+    private val ACCOUNT_BEFORE = Regex(
+        """(?:[Xx*]|\b(?:A/c|Acct|Acc|Account|AC|Card)\s*(?:no\.?\s*)?(?:ending\s+(?:with\s+)?)?[Xx*.]*)$""",
         RegexOption.IGNORE_CASE,
     )
 
-    private val DIRECTION_KEYWORDS_DEBIT = listOf("debited", "debit", "spent", "paid", "withdrawn", "deducted", "sent", "dr")
-    private val DIRECTION_KEYWORDS_CREDIT = listOf("credited", "credit", "received", "deposited", "cr", "refund")
-
-    private val DISCLAIMER_REGEX = Regex(
-        """(?i)(?:[.,;\s]+(?:Not\s+you\??|If\s+not\s+you|Never\s+Share|Call\s+\d+|SMS\s+BLOCK|Helpline|Report|For\s+dispute|Dial\b).*)$"""
+    private val DATE_REGEX = Regex(
+        """(?<!\d)(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/ ]?[A-Za-z]{3}[-/ ]?\d{2,4}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})(?!\d)""",
     )
 
-    private data class Span(val start: Int, val end: Int, val replacement: String)
+    private val TIME_REGEX = Regex("""(?<![\d:])\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?(?![\d:])""")
 
+    private val REF_LABEL = Regex(
+        """\b(?:UPI\s*Ref(?:erence)?\s*(?:No\.?)?|UPI|RRN|UTR|IMPS|NEFT|ref(?:erence)?\s*(?:no\.?|id|#)?|(?:txn|tran)\s*(?:id|no\.?)?)""" +
+            """[:\s.#-]*(?=[A-Z]*\d)([A-Z0-9]{6,22})\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    private val BALANCE_REGEX = Regex(
+        """\b(?:Avl|Avb|Avbl|Avlbl|Avail|Available|Clear|Clr|Current|Final|Total|New)?\.?\s*Bal(?:ance)?(?:\s+is)?[-:\s]*(?:Rs|INR|₹)?\.?:?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    private val WHITESPACE = Regex("""\s+""")
+    private val DIGIT_RUN = Regex("""\d+""")
+
+    /** Kept from before the first slot. Enough to name the template, not the greeting. */
+    private const val HEAD_WORDS = 4
+
+    /** Below this a template is a shape any message could fall into, not a sentence. */
+    private const val MIN_FIXED_LETTERS = 4
+
+    private data class Span(val start: Int, val end: Int, val slot: String)
+
+    /**
+     * [bank] is who the template is filed under, and so whose messages it will be tried
+     * against: the sending bank, not the account it was filed to. They differ whenever the
+     * account was one you added by hand - its bank is "UNBOUND" until a message binds it -
+     * and a template filed under that would never be tried against anything.
+     */
     fun learn(
         rawMessage: String,
         amountPaise: Long,
         direction: Direction,
         account: Account,
         payee: String?,
+        bank: String = account.bank,
     ): LearnedPattern? {
         val spans = mutableListOf<Span>()
-
-        // 1. Locate Amount (Required)
-        val amountSpan = findAmountSpan(rawMessage, amountPaise) ?: return null
-        spans.add(Span(amountSpan.first, amountSpan.second, """(?<amount>\d+(?:,\d+)*(?:\.\d{1,2})?)"""))
-
-        // 2. Locate Direction slot if keyword is present
-        val dirKeywords = if (direction == Direction.DEBIT) DIRECTION_KEYWORDS_DEBIT else DIRECTION_KEYWORDS_CREDIT
-        for (kw in dirKeywords) {
-            val kwRegex = Regex("""\b${Regex.escape(kw)}\b""", RegexOption.IGNORE_CASE)
-            val m = kwRegex.find(rawMessage)
-            if (m != null && !overlaps(m.range.first, m.range.last + 1, spans)) {
-                spans.add(
-                    Span(
-                        m.range.first,
-                        m.range.last + 1,
-                        """(?<dir>debited|credited|debit|credit|spent|received|withdrawn|deposited|deducted|paid|sent)""",
-                    ),
-                )
-                break
-            }
+        fun free(start: Int, end: Int) = spans.none { maxOf(start, it.start) < minOf(end, it.end) }
+        fun claim(start: Int, end: Int, slot: String) {
+            if (free(start, end)) spans += Span(start, end, slot)
         }
 
-        // 3. Locate Account token digits (Required)
-        val acctSpan = findAccountSpan(rawMessage, account.accountToken)
-        if (acctSpan != null) {
-            spans.add(acctSpan)
-        }
+        val amount = findAmount(rawMessage, amountPaise) ?: return null
+        claim(amount.first, amount.last + 1, AMOUNT_SLOT)
 
-        // 4. Locate Date
-        val dateMatch = DATE_REGEX.find(rawMessage)
-        if (dateMatch != null && !overlaps(dateMatch.range.first, dateMatch.range.last + 1, spans)) {
-            spans.add(Span(dateMatch.range.first, dateMatch.range.last + 1, """(?<date>\d{1,2}[-/.A-Za-z0-9]{2,7}\d{2,4})"""))
-        }
+        val acct = findAccount(rawMessage, account.accountToken, ::free) ?: return null
+        claim(acct.first, acct.last + 1, ACCT_SLOT)
+        val observedToken = rawMessage.substring(acct).filter(Char::isDigit)
 
-        // 5. Locate Time
-        val timeMatch = TIME_REGEX.find(rawMessage)
-        if (timeMatch != null && !overlaps(timeMatch.range.first, timeMatch.range.last + 1, spans)) {
-            spans.add(Span(timeMatch.range.first, timeMatch.range.last + 1, """(?<time>\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)"""))
-        }
+        directionWord(rawMessage, direction, ::free)?.let { claim(it.first, it.last + 1, DIR_SLOT) }
 
-        // 6. Locate Reference / UTR / Txn ID
-        for (pattern in REF_PATTERNS) {
-            val match = pattern.find(rawMessage)
-            if (match != null && match.groups.size > 1) {
-                val group = match.groups[1]
-                if (group != null && !overlaps(group.range.first, group.range.last + 1, spans)) {
-                    spans.add(Span(group.range.first, group.range.last + 1, """(?<ref>[A-Z0-9]{6,22})"""))
-                    break
-                }
-            }
-        }
+        DATE_REGEX.findAll(rawMessage)
+            .firstOrNull { free(it.range.first, it.range.last + 1) && parseIndianDate(it.value) != null }
+            ?.let { claim(it.range.first, it.range.last + 1, DATE_SLOT) }
 
-        // 7. Locate Balance
-        val balMatch = BALANCE_REGEX.find(rawMessage)
-        if (balMatch != null && balMatch.groups.size > 1) {
-            val group = balMatch.groups[1]
-            if (group != null && !overlaps(group.range.first, group.range.last + 1, spans)) {
-                spans.add(Span(group.range.first, group.range.last + 1, """(?<bal>\d+(?:,\d+)*(?:\.\d{1,2})?)"""))
-            }
-        }
+        TIME_REGEX.findAll(rawMessage)
+            .firstOrNull { free(it.range.first, it.range.last + 1) }
+            ?.let { claim(it.range.first, it.range.last + 1, TIME_SLOT) }
 
-        // 8. Locate Payee if provided and present in the message
-        if (!payee.isNullOrBlank()) {
-            val payeeTrim = payee.trim()
-            val payeeIdx = rawMessage.indexOf(payeeTrim, ignoreCase = true)
-            if (payeeIdx != -1 && !overlaps(payeeIdx, payeeIdx + payeeTrim.length, spans)) {
-                spans.add(Span(payeeIdx, payeeIdx + payeeTrim.length, """(?<payee>[^.;,\n\r]+)"""))
-            }
-        }
+        REF_LABEL.findAll(rawMessage)
+            .mapNotNull { it.groups[1] }
+            .firstOrNull { free(it.range.first, it.range.last + 1) }
+            ?.let { claim(it.range.first, it.range.last + 1, REF_SLOT) }
 
-        // Sort spans by start index
+        BALANCE_REGEX.findAll(rawMessage)
+            .mapNotNull { it.groups[1] }
+            .firstOrNull { free(it.range.first, it.range.last + 1) }
+            ?.let { claim(it.range.first, it.range.last + 1, BAL_SLOT) }
+
+        payeeSpan(rawMessage, payee, direction, ::free)?.let { claim(it.first, it.last + 1, PAYEE) }
+
         spans.sortBy { it.start }
-
-        val sb = StringBuilder()
-        var cursor = 0
-        for (span in spans) {
-            if (span.start > cursor) {
-                val literal = rawMessage.substring(cursor, span.start)
-                sb.append(escapeLiteralToRegex(literal))
-            }
-            sb.append(span.replacement)
-            cursor = span.end
-        }
-        if (cursor < rawMessage.length) {
-            val literal = rawMessage.substring(cursor)
-            val disclaimerMatch = DISCLAIMER_REGEX.find(literal)
-            if (disclaimerMatch != null) {
-                val cleanLiteral = literal.substring(0, disclaimerMatch.range.first)
-                sb.append(escapeLiteralToRegex(cleanLiteral))
-                sb.append("""(?:\s*.*)?""")
-            } else {
-                sb.append(escapeLiteralToRegex(literal))
-            }
-        }
-
-        val patternString = sb.toString()
+        val (patternString, fixedLetters) = build(rawMessage, spans)
+        if (fixedLetters < MIN_FIXED_LETTERS) return null
         runCatching { Regex(patternString, RegexOption.IGNORE_CASE) }.getOrNull() ?: return null
 
-        val patternId = "LEARNED.${account.bank}.${Math.abs(patternString.hashCode())}"
-        val learnedPattern = LearnedPattern(
-            id = patternId,
-            bank = account.bank,
+        val learned = LearnedPattern(
+            id = "$ID_PREFIX$bank.${Math.abs(patternString.hashCode())}",
+            bank = bank,
             regex = patternString,
             direction = direction,
-            accountToken = account.accountToken,
+            accountToken = observedToken,
             isCard = account.kind == AccountKind.CREDIT_CARD,
             createdAt = System.currentTimeMillis(),
         )
 
-        // Validate that this pattern successfully matches and parses the original message
-        val spec = learnedPattern.toPatternSpec()
-        val parsed = applySpec(spec, rawMessage, System.currentTimeMillis(), bank = account.bank)
-        if (parsed == null || parsed.amountPaise != amountPaise) {
-            return buildRelaxedPattern(rawMessage, amountPaise, direction, account)
+        // The template has to read back the message it came from, exactly as it was filed.
+        // If it cannot, it is wrong about this bank's sentence, and a wrong template books
+        // wrong rows unattended - so nothing is learned rather than something approximate.
+        val parsed = applySpec(learned.toPatternSpec(), rawMessage, System.currentTimeMillis())
+        val faithful = parsed != null &&
+            parsed.amountPaise == amountPaise &&
+            parsed.direction == direction &&
+            parsed.accountToken == observedToken
+        return learned.takeIf { faithful }
+    }
+
+    /**
+     * Where the amount stands. Of several numbers with the same value, the one with a
+     * currency in front of it and no balance label wins: "Credited Rs 1000 ... Avl Bal Rs
+     * 1000" must slot the first, or the template reads the balance as the amount forever.
+     */
+    private fun findAmount(raw: String, paise: Long): IntRange? {
+        val hits = NUMBER.findAll(raw).filter { parseAmountToPaise(it.value) == paise }.toList()
+        fun before(m: MatchResult, n: Int) = raw.substring(maxOf(0, m.range.first - n), m.range.first)
+        val notBalance = hits.filterNot { BALANCE_BEFORE.containsMatchIn(before(it, 25)) }
+        return (notBalance.firstOrNull { CURRENCY_BEFORE.containsMatchIn(before(it, 8)) }
+            ?: notBalance.firstOrNull()
+            ?: hits.firstOrNull())?.range
+    }
+
+    /**
+     * Where the account number stands, mask included.
+     *
+     * The account's own digits are preferred, but only where something marks them as an
+     * account: Union ends its debits "SMS BLOCK 2209 to ...", and the first "2209" in a
+     * message is not always the one after "A/c". Failing that - an account you added by
+     * hand has no digits yet, and a debit card prints different ones from the account it
+     * draws on - whatever the message itself marks as an account is used.
+     */
+    private fun findAccount(raw: String, token: String, free: (Int, Int) -> Boolean): IntRange? {
+        fun marked(r: IntRange) =
+            free(r.first, r.last + 1) &&
+                ACCOUNT_BEFORE.containsMatchIn(raw.substring(maxOf(0, r.first - 20), r.first))
+
+        val digits = token.filter(Char::isDigit)
+        val own = if (digits.length >= 3) {
+            Regex("""(?<!\d)$digits(?!\d)""").findAll(raw).map { it.range }.firstOrNull(::marked)
+        } else {
+            null
         }
+        val found = own ?: STANDALONE_DIGITS.findAll(raw).map { it.range }.firstOrNull(::marked) ?: return null
 
-        return learnedPattern
+        var start = found.first
+        while (start > 0 && raw[start - 1] in "Xx*.-" && free(start - 1, found.last + 1)) start--
+        return start..found.last
     }
 
-    private fun overlaps(start: Int, end: Int, existing: List<Span>): Boolean {
-        return existing.any { span -> maxOf(start, span.start) < minOf(end, span.end) }
+    private fun directionWord(raw: String, direction: Direction, free: (Int, Int) -> Boolean): IntRange? {
+        val words = if (direction == Direction.DEBIT) DEBIT_WORDS else CREDIT_WORDS
+        for (word in words) {
+            Regex("""\b${Regex.escape(word)}\b""", RegexOption.IGNORE_CASE).findAll(raw)
+                .map { it.range }
+                .firstOrNull { free(it.first, it.last + 1) }
+                ?.let { return it }
+        }
+        return null
     }
 
-    private fun findAmountSpan(rawMessage: String, amountPaise: Long): Pair<Int, Int>? {
-        val numRegex = Regex("""\b\d+(?:,\d+)*(?:\.\d{1,2})?\b""")
-        for (m in numRegex.findAll(rawMessage)) {
-            val paise = parseAmountToPaise(m.value)
-            if (paise == amountPaise) {
-                return Pair(m.range.first, m.range.last + 1)
+    /**
+     * The payee you typed, if the message prints it; otherwise whoever the message names.
+     *
+     * The fallback matters. A payee corrected by hand - "AONE TRA" typed as "Aone Traders" -
+     * is not in the message, and leaving the printed name as fixed text tied the template
+     * to that one shop, so the next payment anywhere else came back to the tray.
+     */
+    private fun payeeSpan(raw: String, typed: String?, direction: Direction, free: (Int, Int) -> Boolean): IntRange? {
+        val candidates = listOfNotNull(
+            typed?.trim()?.takeIf { it.isNotEmpty() },
+            extractGenericPayee(raw, direction),
+        )
+        for (candidate in candidates) {
+            var index = raw.indexOf(candidate, ignoreCase = true)
+            while (index >= 0) {
+                if (free(index, index + candidate.length)) return index until index + candidate.length
+                index = raw.indexOf(candidate, index + 1, ignoreCase = true)
             }
         }
         return null
     }
 
-    private fun findAccountSpan(rawMessage: String, accountToken: String): Span? {
-        val cleanToken = accountToken.filter { it.isDigit() }
-        if (cleanToken.length < 3) return null
-        val idx = rawMessage.indexOf(cleanToken)
-        if (idx == -1) return null
-        var start = idx
-        while (start > 0 && rawMessage[start - 1] in setOf('X', 'x', '*', '.', '-')) {
-            start--
+    /** The regex, and how many letters of fixed text it holds. */
+    private fun build(raw: String, spans: List<Span>): Pair<String, Int> {
+        val sb = StringBuilder()
+        var letters = 0
+        fun fixed(text: String) {
+            letters += text.count(Char::isLetter)
+            sb.append(literal(text))
         }
-        return Span(start, idx + cleanToken.length, """[Xx*.-]*(?<acct>\d{3,6})""")
+
+        fixed(raw.substring(0, spans.first().start).split(WHITESPACE).filter { it.isNotEmpty() }
+            .takeLast(HEAD_WORDS).joinToString(" "))
+        spans.forEachIndexed { i, span ->
+            if (i > 0) fixed(raw.substring(spans[i - 1].end, span.start))
+            sb.append(
+                if (span.slot != PAYEE) {
+                    span.slot
+                } else {
+                    // Bounded by whatever fixed text follows when there is some, so a payee
+                    // may hold dots ("MR. A.B. SHARMA & CO."); otherwise it runs to the
+                    // first punctuation, since nothing after the last slot is kept.
+                    val next = spans.getOrNull(i + 1)?.let { raw.substring(span.end, it.start) }
+                    if (next != null && next.any(Char::isLetter)) """(?<payee>.+?)""" else """(?<payee>[^.;,\n\r]+)"""
+                },
+            )
+        }
+        return sb.toString() to letters
     }
 
-    private fun escapeLiteralToRegex(literal: String): String {
-        val words = literal.split(Regex("""\s+""")).filter { it.isNotEmpty() }
-        if (words.isEmpty()) {
-            return if (literal.any { it.isWhitespace() }) """\s+""" else ""
-        }
-        val escaped = words.joinToString("""\s+""") { Regex.escape(it) }
-        val leading = if (literal.firstOrNull()?.isWhitespace() == true) """\s+""" else ""
-        val trailing = if (literal.lastOrNull()?.isWhitespace() == true) """\s+""" else ""
-        return leading + escaped + trailing
+    /** Fixed text as a regex: words exact, digits any, whitespace optional at the edges. */
+    private fun literal(text: String): String {
+        val words = text.split(WHITESPACE).filter { it.isNotEmpty() }
+        if (words.isEmpty()) return if (text.isEmpty()) "" else """\s*"""
+        return """\s*""" + words.joinToString("""\s+""", transform = ::word) + """\s*"""
     }
 
-    private fun buildRelaxedPattern(
-        rawMessage: String,
-        amountPaise: Long,
-        direction: Direction,
-        account: Account,
-    ): LearnedPattern? {
-        val cleanToken = account.accountToken.filter { it.isDigit() }
-        val acctClause = if (cleanToken.length >= 3 && rawMessage.contains(cleanToken)) {
-            """[Xx*.-]*(?<acct>\d{3,6})"""
-        } else {
-            """(?<acct>${Regex.escape(account.accountToken)})"""
+    private fun word(word: String): String {
+        val sb = StringBuilder()
+        var cursor = 0
+        for (m in DIGIT_RUN.findAll(word)) {
+            if (m.range.first > cursor) sb.append(Regex.escape(word.substring(cursor, m.range.first)))
+            sb.append("""\d+""")
+            cursor = m.range.last + 1
         }
-        val words = rawMessage.split(Regex("""\s+"""))
-            .filter { it.length > 3 && it.all { c -> c.isLetter() } }
-        if (words.size < 2) return null
-        val anchors = words.take(3).joinToString("""\s+""") { Regex.escape(it) }
-
-        val amountSpan = findAmountSpan(rawMessage, amountPaise)
-        val acctSpan = findAccountSpan(rawMessage, account.accountToken)
-        val patternString = if (amountSpan != null && acctSpan != null && amountSpan.first < acctSpan.start) {
-            """(?i)$anchors.*?(?<amount>\d+(?:,\d+)*(?:\.\d{1,2})?).*?$acctClause"""
-        } else {
-            """(?i)$anchors.*?$acctClause.*?(?<amount>\d+(?:,\d+)*(?:\.\d{1,2})?)"""
-        }
-
-        val patternId = "LEARNED.${account.bank}.${Math.abs(patternString.hashCode())}"
-        val pattern = LearnedPattern(
-            id = patternId,
-            bank = account.bank,
-            regex = patternString,
-            direction = direction,
-            accountToken = account.accountToken,
-            isCard = account.kind == AccountKind.CREDIT_CARD,
-            createdAt = System.currentTimeMillis(),
-        )
-        val spec = pattern.toPatternSpec()
-        val parsed = applySpec(spec, rawMessage, System.currentTimeMillis(), bank = account.bank)
-        return if (parsed != null && parsed.amountPaise == amountPaise) pattern else null
+        if (cursor < word.length) sb.append(Regex.escape(word.substring(cursor)))
+        return sb.toString()
     }
 }

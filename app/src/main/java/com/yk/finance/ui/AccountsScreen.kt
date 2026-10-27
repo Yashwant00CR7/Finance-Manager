@@ -18,7 +18,9 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.yk.finance.data.Account
 import com.yk.finance.data.AccountKind
 import com.yk.finance.data.Txn
+import com.yk.finance.domain.AccountRemoval
 import com.yk.finance.domain.Looks
 import com.yk.finance.domain.Splitter
 import com.yk.finance.domain.formatRupees
@@ -64,10 +68,12 @@ fun AccountsScreen(
 ) {
     val overall by vm.overall.collectAsState()
     val owed by vm.owed.collectAsState()
+    val aliases by vm.accountAliases.collectAsState()
     var settling by remember { mutableStateOf<Splitter.Owed?>(null) }
     val money = LocalMoneyColors.current
     var editing by remember { mutableStateOf<Account?>(null) }
     var reconciling by remember { mutableStateOf<Account?>(null) }
+    var deleting by remember { mutableStateOf<Account?>(null) }
     var adding by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -253,6 +259,15 @@ fun AccountsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = money.muted,
                         )
+                        // Said out loud because it decides where messages land: an account
+                        // you merged another into quietly receives that one's messages too.
+                        aliases[account.id]?.takeIf { it.isNotEmpty() }?.let { extra ->
+                            Text(
+                                "Also files " + extra.joinToString { "${it.bank} ..${it.accountToken}" },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = money.muted,
+                            )
+                        }
                     }
                     var menuOpen by remember { mutableStateOf(false) }
                     Box {
@@ -277,6 +292,10 @@ fun AccountsScreen(
                                     onClick = { menuOpen = false; reconciling = account },
                                 )
                             }
+                            DropdownMenuItem(
+                                text = { Text("Delete account", color = MaterialTheme.colorScheme.error) },
+                                onClick = { menuOpen = false; deleting = account },
+                            )
                         }
                     }
                 }
@@ -339,6 +358,132 @@ fun AccountsScreen(
                 adding = false
             },
         )
+    }
+
+    deleting?.let { account ->
+        DeleteAccountDialog(
+            account = account,
+            txnCount = state.transactions.count { it.accountId == account.id },
+            targets = state.accounts.filter { AccountRemoval.canMoveInto(account, it) },
+            onDismiss = { deleting = null },
+            onConfirm = { moveToId, stopTracking ->
+                vm.deleteAccount(account, moveToId, stopTracking)
+                deleting = null
+            },
+        )
+    }
+}
+
+/**
+ * Deleting an account, and the two honest things to do with what is recorded on it.
+ *
+ * The count is stated before anything is chosen, because "delete" on an account with three
+ * hundred rows and on one with none are different decisions. Moving is offered beside
+ * deleting rather than after it: an account created twice - once by hand, once by the
+ * bank's first message - is the commonest reason to be here, and deleting either copy with
+ * its history would throw away half of it.
+ */
+@Composable
+private fun DeleteAccountDialog(
+    account: Account,
+    txnCount: Int,
+    targets: List<Account>,
+    onDismiss: () -> Unit,
+    onConfirm: (moveToId: Long?, stopTracking: Boolean) -> Unit,
+) {
+    val money = LocalMoneyColors.current
+    var moving by remember { mutableStateOf(false) }
+    var moveTo by remember { mutableStateOf<Account?>(null) }
+    var picking by remember { mutableStateOf(false) }
+    var stopTracking by remember { mutableStateOf(false) }
+    val linked = AccountRemoval.isMessageLinked(account)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete ${account.displayName}?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    when (txnCount) {
+                        0 -> "Nothing is recorded on this account."
+                        1 -> "1 transaction is recorded on this account."
+                        else -> "$txnCount transactions are recorded on this account."
+                    },
+                )
+                if (txnCount > 0) {
+                    ChoiceRow(
+                        selected = !moving,
+                        title = "Delete them too",
+                        detail = "Its balance leaves your total. Transfers with your other " +
+                            "accounts stay on those accounts.",
+                        onClick = { moving = false },
+                    )
+                    if (targets.isNotEmpty()) {
+                        ChoiceRow(
+                            selected = moving,
+                            title = "Move them to another account",
+                            detail = "For two entries that are really one account. Its bank " +
+                                "messages go there from now on.",
+                            onClick = { moving = true },
+                        )
+                        if (moving) {
+                            Box(Modifier.padding(start = 48.dp)) {
+                                OutlinedButton(onClick = { picking = true }) {
+                                    Text(moveTo?.displayName ?: "Choose account", maxLines = 1)
+                                }
+                                DropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
+                                    targets.forEach { target ->
+                                        DropdownMenuItem(
+                                            text = { Text(target.displayName) },
+                                            onClick = { moveTo = target; picking = false },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // Moving keeps the messages coming, into the other account, so switching
+                // them off is only a question when they would otherwise recreate this one.
+                if (linked && !moving) {
+                    Row(
+                        Modifier.fillMaxWidth().clickable { stopTracking = !stopTracking },
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Checkbox(checked = stopTracking, onCheckedChange = { stopTracking = it })
+                        Column(Modifier.padding(top = 12.dp)) {
+                            Text("Ignore its messages from now on", fontWeight = FontWeight.Medium)
+                            Text(
+                                "Leave this off and the next message for " +
+                                    "${account.bank} ..${account.accountToken} adds the account back. " +
+                                    "You can switch it back on in Settings.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = money.muted,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(if (moving) moveTo?.id else null, stopTracking && !moving) },
+                enabled = !moving || moveTo != null,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            ) { Text(if (moving) "Move and delete" else "Delete") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun ChoiceRow(selected: Boolean, title: String, detail: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick), verticalAlignment = Alignment.Top) {
+        RadioButton(selected = selected, onClick = onClick)
+        Column(Modifier.padding(top = 12.dp)) {
+            Text(title, fontWeight = FontWeight.Medium)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = LocalMoneyColors.current.muted)
+        }
     }
 }
 

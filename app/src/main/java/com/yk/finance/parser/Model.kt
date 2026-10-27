@@ -72,4 +72,13 @@ sealed interface ParseResult {
 
 interface TransactionParser {
     fun parse(sender: String, body: String, receivedAt: Long): ParseResult
+
+    /**
+     * As above, also trying the templates this device has learned. See TemplateLearner.
+     *
+     * Learned templates are handed in rather than read here so the parser stays a pure
+     * function with no database behind it.
+     */
+    fun parse(sender: String, body: String, receivedAt: Long, learned: List<PatternSpec>): ParseResult =
+        parse(sender, body, receivedAt)
 }

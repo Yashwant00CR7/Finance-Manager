@@ -2,10 +2,12 @@ package com.yk.finance.domain
 
 import com.yk.finance.backup.CsvExport
 import com.yk.finance.data.Account
+import com.yk.finance.data.AccountAlias
 import com.yk.finance.data.AccountKind
 import com.yk.finance.data.Category
 import com.yk.finance.data.CategoryRule
 import com.yk.finance.data.FinanceDao
+import com.yk.finance.data.IgnoredAccount
 import com.yk.finance.data.Sharing
 import com.yk.finance.data.Txn
 import com.yk.finance.data.TxnSource
@@ -18,6 +20,9 @@ import com.yk.finance.importer.ImportOutcome
 import com.yk.finance.parser.Channel
 import com.yk.finance.parser.Direction
 import com.yk.finance.parser.RuleBasedParser
+import com.yk.finance.parser.applySpec
+import com.yk.finance.parser.occurredAtFor
+import com.yk.finance.parser.senderBankKey
 
 /** Everything the UI can do to the ledger. */
 class Repository(
@@ -26,6 +31,11 @@ class Repository(
     /** Null in tests that do not exercise learning. See [CategoryModel]. */
     private val model: CategoryModel? = null,
     private val outcomes: GuessOutcomes = GuessOutcomes.None,
+    /**
+     * Runs a change that touches several tables as one. Room's withTransaction in the app;
+     * a plain call in tests, which have no database to roll back.
+     */
+    private val atomically: suspend (suspend () -> Unit) -> Unit = { it() },
 ) {
 
     /**
@@ -189,28 +199,120 @@ class Repository(
     /**
      * One-tap binding: the auto-created account seen in an SMS is folded into the
      * account you declared at setup. Its transactions and balance move across.
+     *
+     * The same thing as deleting the auto-created account and moving its history, so it
+     * is exactly that. It used to be its own code, and two things it got wrong were fixed
+     * there and not here: it overwrote the declared account's own bank identity when that
+     * already had one, so that account's messages started creating a new entry; and it
+     * added the auto account's balance onto the declared one even when the bank had
+     * printed that balance, which double-counted the declared opening balance.
      */
-    suspend fun bindAutoAccountTo(autoCreated: Account, declared: Account) {
-        // Order is load-bearing. accounts has a UNIQUE index on (bank, accountToken),
-        // so the auto-created row must be gone before the declared row can adopt its
-        // identity - otherwise both rows hold the same pair and the update throws.
-        dao.reassignTransactions(fromAccountId = autoCreated.id, toAccountId = declared.id)
-        dao.deleteAccount(autoCreated.id)
-        dao.updateAccount(
-            declared.copy(
-                bank = autoCreated.bank,
-                accountToken = autoCreated.accountToken,
-                // The declared opening balance already reflects real money; the auto
-                // account's balance is only the delta accumulated since it appeared.
-                currentBalancePaise = declared.currentBalancePaise + autoCreated.currentBalancePaise,
-                providesBalance = autoCreated.providesBalance,
-                needsConfirmation = false,
-            ),
-        )
-    }
+    suspend fun bindAutoAccountTo(autoCreated: Account, declared: Account) =
+        deleteAccount(autoCreated, moveToId = declared.id, stopTracking = false)
 
     suspend fun renameAccount(account: Account, name: String) {
         dao.updateAccount(account.copy(displayName = name, needsConfirmation = false))
+    }
+
+    // ----- deleting an account -----
+
+    /** Accounts whose messages are switched off, for Settings to list and switch back on. */
+    val ignoredAccounts = dao.observeIgnoredAccounts()
+
+    /** Every extra set of digits an account answers to. */
+    val accountAliases = dao.observeAliases()
+
+    suspend fun unignoreAccount(bank: String, accountToken: String) =
+        dao.unignoreAccount(bank, accountToken)
+
+    /**
+     * Deletes an account, either with its history or after moving that history elsewhere.
+     * See [AccountRemoval] for what happens to the rows on either side.
+     *
+     * [stopTracking] switches off its bank messages, without which the next one creates
+     * the account again. It is ignored when moving: the point of moving is that those
+     * messages keep arriving, into the destination.
+     *
+     * All one transaction. Half a delete - rows gone but the account still there, or the
+     * reverse - is a ledger that disagrees with itself.
+     */
+    suspend fun deleteAccount(account: Account, moveToId: Long?, stopTracking: Boolean) = atomically {
+        // A destination that is gone, or that cannot take these rows, refuses the whole
+        // thing. Falling through to the delete below would destroy the history the person
+        // had asked to keep.
+        val target = moveToId?.let { id ->
+            dao.accountById(id)?.takeIf { AccountRemoval.canMoveInto(account, it) } ?: return@atomically
+        }
+        val own = dao.txnsForAccount(account.id)
+        val related = relatedRows(own)
+
+        if (target == null) {
+            apply(AccountRemoval.deleteWithHistory(account.id, own, related))
+            val identities = listOf(account.bank to account.accountToken) +
+                dao.aliasesOf(account.id).map { it.bank to it.accountToken }
+            dao.deleteAliasesOf(account.id)
+            dao.deleteAccount(account.id)
+            if (stopTracking && AccountRemoval.isMessageLinked(account)) {
+                val now = System.currentTimeMillis()
+                identities.forEach { (bank, token) ->
+                    dao.ignoreAccount(IgnoredAccount(bank, token, account.displayName, now))
+                }
+            }
+            return@atomically
+        }
+
+        val plan = AccountRemoval.moveTo(account.id, target.id, own, related)
+        apply(plan)
+        dao.repointAliases(fromAccountId = account.id, toAccountId = target.id)
+        // Order is load-bearing. accounts has a UNIQUE index on (bank, accountToken),
+        // so the old row must be gone before the destination can adopt its identity -
+        // otherwise both rows hold the same pair and the update throws.
+        dao.deleteAccount(account.id)
+
+        val fresh = dao.accountById(target.id) ?: return@atomically
+        val importNames = AccountRemoval.mergedImportNames(account, fresh, AccountBinder::aliasesOf)
+        if (AccountRemoval.adoptsIdentity(account, fresh)) {
+            dao.updateAccount(
+                fresh.copy(
+                    aliases = importNames,
+                    bank = account.bank,
+                    accountToken = account.accountToken,
+                    // A balance the bank printed is the bank's own figure for this very
+                    // account, and outranks any arithmetic. Otherwise the destination's
+                    // opening balance stands and the moved rows are added to it.
+                    currentBalancePaise = if (account.providesBalance) {
+                        account.currentBalancePaise
+                    } else {
+                        fresh.currentBalancePaise + plan.balanceDeltaPaise
+                    },
+                    providesBalance = account.providesBalance,
+                    needsConfirmation = false,
+                ),
+            )
+        } else {
+            if (AccountRemoval.isMessageLinked(account)) {
+                // The destination keeps its own digits and answers to these as well,
+                // or the next message about them would create the old account again.
+                dao.upsertAlias(AccountAlias(account.bank, account.accountToken, fresh.id))
+            }
+            // Before the balance moves: this writes the whole row back, balance included.
+            if (fresh.needsConfirmation || importNames != fresh.aliases) {
+                dao.updateAccount(fresh.copy(needsConfirmation = false, aliases = importNames))
+            }
+            if (fresh.kind != AccountKind.CREDIT_CARD) dao.adjustBalance(fresh.id, plan.balanceDeltaPaise)
+        }
+    }
+
+    /** Rows on other accounts tied to [own] by a transfer or a split. */
+    private suspend fun relatedRows(own: List<Txn>): List<Txn> {
+        val transfers = own.mapNotNull { it.transferGroupId }.distinct().flatMap { dao.transferLegs(it) }
+        val splits = own.mapNotNull { it.splitGroupId }.distinct().flatMap { dao.splitGroup(it) }
+        return (transfers + splits).distinctBy { it.id }
+    }
+
+    private suspend fun apply(plan: AccountRemoval.Plan) {
+        if (plan.deleteIds.isNotEmpty()) dao.deleteTxns(plan.deleteIds)
+        plan.updates.forEach { dao.updateTxn(it) }
     }
 
     // ----- manual cash -----
@@ -622,9 +724,18 @@ class Repository(
     suspend fun confirmReview(reviewId: Long) {
         val review = dao.reviewById(reviewId) ?: return
         ingestor.confirmAndIngest(review)
+        ingestor.fileQueued()
     }
 
-    /** Rescues a message the parser could not read, as a hand-entered transaction and learns the template. */
+    /**
+     * Rescues a message the parser could not read, as a hand-entered transaction, and
+     * learns its sentence so the bank's next message of the same shape files itself.
+     *
+     * Dated by the message, not by the tap. See occurredAtFor.
+     *
+     * One transaction, so that a second tap on Record finds the tray entry already gone
+     * rather than filing the same payment twice.
+     */
     suspend fun recordFromReview(
         reviewId: Long,
         accountId: Long,
@@ -632,48 +743,77 @@ class Repository(
         direction: Direction,
         payee: String?,
         categoryId: Long?,
-        occurredAt: Long,
     ) {
-        val review = dao.reviewById(reviewId)
-        val account = dao.accountById(accountId)
+        atomically {
+            val review = dao.reviewById(reviewId) ?: return@atomically
+            val account = dao.accountById(accountId) ?: return@atomically
 
-        // Synthesize and learn a template pattern so future matching messages book automatically
-        if (review != null && account != null) {
-            TemplateLearner.learn(
+            // Filed under the bank that sent it, which is who its next message will come
+            // from. The account's own bank is "UNBOUND" for one added by hand, and a template
+            // filed under that would never be tried against anything.
+            val bank = senderBankKey(review.sender, review.rawMessage) ?: account.bank
+            val learned = TemplateLearner.learn(
                 rawMessage = review.rawMessage,
                 amountPaise = amountPaise,
                 direction = direction,
                 account = account,
                 payee = payee,
-            )?.let { learned ->
-                dao.insertLearnedPattern(learned)
-            }
-        }
+                bank = bank,
+            )
+            learned?.let { dao.insertLearnedPattern(it) }
+            learned?.accountToken?.let { linkAccount(account, bank, it) }
 
-        // If a category was chosen, teach the payee rule so future occurrences get categorised
-        if (categoryId != null && !payee.isNullOrBlank()) {
-            val key = Categorizer.payeeKey(payee)
-            if (key != null) {
-                dao.upsertRule(CategoryRule(payeeKey = key, categoryId = categoryId))
+            // Taught under the name you typed and under the one the bank printed, because
+            // the next message will carry the printed one: "Aone Traders" typed over
+            // "AONE TRA" taught a rule no future message would ever look up.
+            if (categoryId != null) {
+                val printed = learned?.let { applySpec(it.toPatternSpec(), review.rawMessage, review.receivedAt)?.payee }
+                listOfNotNull(payee, printed)
+                    .mapNotNull(Categorizer::payeeKey)
+                    .distinct()
+                    .forEach { dao.upsertRule(CategoryRule(payeeKey = it, categoryId = categoryId)) }
             }
-        }
 
-        dao.insertTxn(
-            Txn(
-                accountId = accountId,
-                direction = direction,
-                amountPaise = amountPaise,
-                occurredAt = occurredAt,
-                payee = payee,
-                reference = null,
-                categoryId = categoryId,
-                countsAsSpending = direction == Direction.DEBIT,
-                source = TxnSource.MANUAL,
-                rawMessage = review?.rawMessage,
-            ),
-        )
-        dao.adjustBalance(accountId, if (direction == Direction.DEBIT) -amountPaise else amountPaise)
-        dao.dismissReview(reviewId)
+            dao.insertTxn(
+                Txn(
+                    accountId = accountId,
+                    direction = direction,
+                    amountPaise = amountPaise,
+                    occurredAt = occurredAtFor(review.rawMessage, review.receivedAt),
+                    payee = payee,
+                    reference = null,
+                    categoryId = categoryId,
+                    countsAsSpending = direction == Direction.DEBIT,
+                    source = TxnSource.MANUAL,
+                    rawMessage = review.rawMessage,
+                ),
+            )
+            dao.adjustBalance(accountId, if (direction == Direction.DEBIT) -amountPaise else amountPaise)
+            dao.dismissReview(reviewId)
+        }
+        ingestor.fileQueued()
+    }
+
+    /**
+     * Ties the digits a message printed to the account you filed it against, so that bank's
+     * next message lands there by itself instead of creating an account of its own.
+     *
+     * Only where it cannot be a slip of the finger. An account you added by hand, which no
+     * message has claimed yet, takes these digits as its own; an account at the same bank
+     * answers to them as well (a debit card and the account it draws on print different
+     * digits). Filing a Union message against Cash, or against an ICICI account, records
+     * that one message and links nothing - one wrong tap would otherwise send every future
+     * Union message to the wrong place without a word. Digits something else already
+     * answers to are left alone for the same reason.
+     */
+    private suspend fun linkAccount(account: Account, bank: String, token: String) {
+        if (dao.findAccount(bank, token) != null || dao.aliasFor(bank, token) != null) return
+        when {
+            AccountRemoval.isUnbound(account) ->
+                dao.updateAccount(account.copy(bank = bank, accountToken = token, needsConfirmation = false))
+            account.bank.equals(bank, ignoreCase = true) ->
+                dao.upsertAlias(AccountAlias(bank, token, account.id))
+        }
     }
 
     // ----- v2.0: editing what is already recorded -----

@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,6 +45,7 @@ fun SettingsSection(vm: FinanceViewModel, state: UiState) {
     val guessStats by vm.guessStats.collectAsState()
     val guessCount by vm.guessCount.collectAsState()
     val notifyOnRecord by vm.notifyOnRecord.collectAsState()
+    val ignored by vm.ignoredAccounts.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (!smsGranted) MissingSmsPermissionCard()
@@ -174,6 +176,41 @@ fun SettingsSection(vm: FinanceViewModel, state: UiState) {
                         )
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = { vm.rename(account, name) }) { Text("Save") }
+                    }
+                }
+            }
+        }
+
+        // Only when there is something to undo. Every entry here is a bank account whose
+        // payments the app is deliberately not recording, and that has to stay findable -
+        // otherwise a box ticked while deleting one account looks, months later, exactly
+        // like a parser that has stopped working.
+        if (ignored.isNotEmpty()) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Ignored accounts", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Messages for these are dropped as they arrive. Tracking one again picks " +
+                            "up from its next message; nothing missed in between comes back.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = money.muted,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    ignored.forEach { account ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(account.displayName)
+                                Text(
+                                    "${account.bank} ..${account.accountToken}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = money.muted,
+                                )
+                            }
+                            TextButton(onClick = { vm.trackAgain(account) }) { Text("Track again") }
+                        }
                     }
                 }
             }

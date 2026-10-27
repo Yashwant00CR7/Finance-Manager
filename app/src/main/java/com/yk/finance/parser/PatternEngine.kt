@@ -20,7 +20,7 @@ internal fun declaredGroupNames(pattern: String): Set<String> =
  * guess here is not a slightly-wrong label: it is income filed as spending or the reverse,
  * which corrupts every total on every screen.
  */
-private val DIRECTION_WORDS: Map<String, Direction> = mapOf(
+internal val DIRECTION_WORDS: Map<String, Direction> = mapOf(
     "debited" to Direction.DEBIT,
     "dr" to Direction.DEBIT,
     "debit" to Direction.DEBIT,
@@ -83,7 +83,7 @@ internal fun applySpec(
 
     val payee = match.named("payee", declared)?.trim()?.takeIf { it.isNotBlank() }
         ?: firstCapture(spec.payeePatterns, body)
-        ?: extractGenericPayee(body)
+        ?: extractGenericPayee(body, direction)
 
     val reference = match.named("ref", declared)?.trim()?.takeIf { it.isNotBlank() }
         ?: firstCapture(spec.refPatterns, body)

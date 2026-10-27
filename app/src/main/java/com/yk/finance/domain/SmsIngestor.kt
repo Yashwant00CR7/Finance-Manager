@@ -11,9 +11,9 @@ import com.yk.finance.data.TxnSource
 import com.yk.finance.parser.Direction
 import com.yk.finance.parser.ParseResult
 import com.yk.finance.parser.ParsedSms
+import com.yk.finance.parser.PatternSpec
 import com.yk.finance.parser.Tier
 import com.yk.finance.parser.TransactionParser
-import com.yk.finance.parser.applySpec
 import java.util.UUID
 
 /** What ingestion did, so the caller can decide whether to notify. */
@@ -84,17 +84,12 @@ class SmsIngestor(
 ) {
 
     suspend fun ingest(sender: String, body: String, receivedAt: Long): IngestOutcome {
-        // Learned patterns take precedence: they represent past manual confirmations by this user
-        val learnedList = dao.allLearnedPatterns()
-        for (learned in learnedList) {
-            val spec = learned.toPatternSpec()
-            val parsed = applySpec(spec, body, receivedAt, bank = learned.bank)
-            if (parsed != null) {
-                return record(parsed, receivedAt)
-            }
-        }
+        // Learned templates are tried by the parser, first among the patterns for the sending
+        // bank but behind its sender and not-yet-happened checks. A template that no longer
+        // compiles is skipped rather than allowed to fail the message it was meant to read.
+        val learned = usableTemplates()
 
-        return when (val result = parser.parse(sender, body, receivedAt)) {
+        return when (val result = parser.parse(sender, body, receivedAt, learned)) {
             is ParseResult.Ignored -> IngestOutcome.Ignored(result.reason)
             is ParseResult.NeedsReview -> {
                 dao.insertReview(
@@ -178,11 +173,73 @@ class SmsIngestor(
         }
 
         val outcome = record(parsed, review.receivedAt)
+
+        // What *is* promoted is this bank's own sentence. The tray told the person "confirm
+        // once and the app will file them itself", and for a generic match that was not
+        // true: the shape stays untrusted, so the bank's next message of exactly the same
+        // wording came back to the tray, and the next, for ever. The sentence the person
+        // just agreed with is learned instead - bank-scoped and literal, which is everything
+        // the generic shape is not.
+        if (parsed.tier == Tier.GENERIC) learnFrom(parsed)
+
         dao.dismissReview(review.id)
         return outcome
     }
 
+    /**
+     * Files whatever is waiting in the tray that the app can now read on its own.
+     *
+     * Run after the app learns something - a template from a message filed by hand, a
+     * pattern confirmed - and at startup, after an update that may have taught the parser a
+     * shape it used to miss. Without it, recording one Union message by hand taught the app
+     * that sentence while the nine identical ones queued beside it still waited to be typed
+     * in one by one.
+     *
+     * Only what [mayBookItself] allows is filed, exactly as if the message had just arrived.
+     * Anything else is left where it is - never re-queued, so the tray cannot fill with
+     * copies of itself.
+     */
+    suspend fun fileQueued(): Int {
+        val learned = usableTemplates()
+        var filed = 0
+        for (review in dao.allReviews()) {
+            val parsed = (parser.parse(review.sender, review.rawMessage, review.receivedAt, learned)
+                as? ParseResult.Parsed)?.sms ?: continue
+            val confirmed = parsed.tier == Tier.RESEARCHED && dao.isPatternConfirmed(parsed.patternId)
+            if (!mayBookItself(parsed.tier, confirmed)) continue
+            record(parsed, review.receivedAt)
+            dao.dismissReview(review.id)
+            filed++
+        }
+        return filed
+    }
+
+    private suspend fun usableTemplates(): List<PatternSpec> =
+        dao.allLearnedPatterns()
+            .filter { it.isUsable() }
+            .mapNotNull { runCatching { it.toPatternSpec() }.getOrNull() }
+
+    private suspend fun learnFrom(sms: ParsedSms) {
+        val account = dao.findAccount(sms.bank, sms.accountToken)
+            ?: dao.aliasFor(sms.bank, sms.accountToken)?.let { dao.accountById(it.accountId) }
+            ?: return
+        TemplateLearner.learn(
+            rawMessage = sms.raw,
+            amountPaise = sms.amountPaise,
+            direction = sms.direction,
+            account = account,
+            payee = sms.payee,
+            bank = sms.bank,
+        )?.let { dao.insertLearnedPattern(it) }
+    }
+
     private suspend fun record(sms: ParsedSms, receivedAt: Long): IngestOutcome {
+        // Asked for by name when an account was deleted. Checked before anything else,
+        // because the next step would otherwise create that account again.
+        if (dao.isAccountIgnored(sms.bank, sms.accountToken)) {
+            return IngestOutcome.Ignored("messages for ${sms.bank} ..${sms.accountToken} are switched off")
+        }
+
         val account = resolveAccount(sms)
 
         // --- duplicate vs self-transfer -------------------------------------
@@ -347,10 +404,14 @@ class SmsIngestor(
 
         val authoritative = sms.availableBalancePaise
         if (authoritative != null) {
-            dao.setBalance(account.id, authoritative)
+            // Flag first, figure second. The flag is written by rewriting the whole row from
+            // the copy read before this message, and written after the figure it put the old
+            // balance straight back - so the first bank balance an account ever reported was
+            // the one it lost.
             if (!account.providesBalance) {
                 dao.updateAccount(account.copy(providesBalance = true))
             }
+            dao.setBalance(account.id, authoritative)
             return
         }
         val delta = if (sms.direction == Direction.DEBIT) -sms.amountPaise else sms.amountPaise
@@ -364,6 +425,10 @@ class SmsIngestor(
      */
     private suspend fun resolveAccount(sms: ParsedSms): Account {
         dao.findAccount(sms.bank, sms.accountToken)?.let { return it }
+        // Digits that belong to an account you already have - one you merged this into, or
+        // the debit card of a savings account. See AccountAlias.
+        dao.aliasFor(sms.bank, sms.accountToken)?.let { alias -> dao.accountById(alias.accountId) }
+            ?.let { return it }
         val created = Account(
             displayName = "${sms.bank} ..${sms.accountToken}",
             bank = sms.bank,

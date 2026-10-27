@@ -164,6 +164,8 @@ data class PatternSpec(
  * and nothing is inferred from a bare number.
  */
 internal val DEFAULT_REF_PATTERNS: List<Regex> = listOf(
+    // "UPI/P2M/629812345678/SWIGGY" - the reference is the segment after the transfer type.
+    Regex("""\bUPI/(?:P2[AM]|DR|CR)/(\d{6,22})""", RegexOption.IGNORE_CASE),
     Regex("""\bUPI\s*Ref(?:erence)?\s*(?:No\.?)?[:\s.-]*([A-Z0-9]{6,22})""", RegexOption.IGNORE_CASE),
     Regex("""\bUPI[/:\s-]+(\d{9,22})""", RegexOption.IGNORE_CASE),
     Regex("""\bRRN[:\s.-]*(\d{6,22})""", RegexOption.IGNORE_CASE),

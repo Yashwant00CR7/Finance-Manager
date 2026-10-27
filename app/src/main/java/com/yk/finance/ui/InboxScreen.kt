@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,8 +39,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yk.finance.data.Account
+import com.yk.finance.data.AccountKind
 import com.yk.finance.data.PendingReview
 import com.yk.finance.data.Txn
+import com.yk.finance.domain.AccountRemoval
 import com.yk.finance.domain.AttentionPrompt
 import com.yk.finance.domain.formatRupees
 import com.yk.finance.parser.Direction
@@ -106,7 +109,17 @@ fun InboxScreen(vm: FinanceViewModel, state: UiState, onClose: () -> Unit) {
                 if (state.unconfirmed.isNotEmpty()) {
                     item { SectionTitle("New account seen in a message") }
                     items(state.unconfirmed, key = { "unconfirmed-${it.id}" }) { auto ->
-                        UnconfirmedAccountCard(vm, auto, state.bankAccounts.filter { !it.needsConfirmation })
+                        // Cards bind to cards and accounts to accounts. A card offered a
+                        // savings account here could only be refused - its spending would
+                        // draw down a balance the bank never touched.
+                        UnconfirmedAccountCard(
+                            vm,
+                            auto,
+                            state.accounts.filter {
+                                !it.needsConfirmation && it.kind != AccountKind.CASH &&
+                                    AccountRemoval.canMoveInto(auto, it)
+                            },
+                        )
                     }
                 }
 
@@ -286,30 +299,36 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
         else (PREVIEW_PARSER.parse(review.sender, review.rawMessage, review.receivedAt)
             as? ParseResult.Parsed)?.sms
     }
-    if (preview != null) {
-        ConfirmCard(vm, review, preview)
+    // A pattern can read a message and still get it wrong, and the confirm card used to
+    // offer only "right" or "discard" - so a misread payment could only be thrown away.
+    // Fixing it opens the ordinary form with the pattern's reading already typed in.
+    var fixing by remember(review.id) { mutableStateOf(false) }
+    if (preview != null && !fixing) {
+        ConfirmCard(vm, review, preview, onFix = { fixing = true })
         return
     }
 
-    val prefill = remember(review.id, review.rawMessage) {
-        com.yk.finance.parser.extractPreFill(review.rawMessage)
+    val prefill = remember(review.id, review.rawMessage, preview) {
+        preview?.let {
+            com.yk.finance.parser.PreFillValues(
+                amountRupees = paiseToPlain(it.amountPaise),
+                isDebit = it.direction == Direction.DEBIT,
+                payee = it.payee.orEmpty(),
+            )
+        } ?: com.yk.finance.parser.extractPreFill(review.rawMessage)
     }
 
     var amount by remember(review.id) { mutableStateOf(prefill.amountRupees) }
     var payee by remember(review.id) { mutableStateOf(prefill.payee) }
-    val detectedAccountId = remember(review.id, state.bankAccounts) {
-        val tokenMatch = state.bankAccounts.firstOrNull { acc ->
-            acc.accountToken.length >= 3 && review.rawMessage.contains(acc.accountToken, ignoreCase = true)
-        }
-        if (tokenMatch != null) return@remember tokenMatch.id
-
-        val bankFromSender = com.yk.finance.parser.bankForSender(review.sender)
-            ?: com.yk.finance.parser.bankMentionedIn(review.rawMessage)
-        if (bankFromSender != null) {
-            state.bankAccounts.firstOrNull { it.bank.equals(bankFromSender, ignoreCase = true) }?.id
-        } else {
-            null
-        }
+    // Matched on whole tokens the message prints as an account. Searching the text for an
+    // account's digits found "742" inside reference numbers and picked the wrong account.
+    val detectedAccountId = remember(review.id, state.accounts) {
+        val tokens = com.yk.finance.parser.accountTokensIn(review.rawMessage)
+        val bank = com.yk.finance.parser.senderBankKey(review.sender, review.rawMessage)
+        val candidates = state.accounts.filter { it.kind != AccountKind.CASH }
+        candidates.firstOrNull { it.accountToken in tokens && it.bank.equals(bank, ignoreCase = true) }?.id
+            ?: candidates.firstOrNull { it.accountToken in tokens }?.id
+            ?: bank?.let { b -> candidates.firstOrNull { it.bank.equals(b, ignoreCase = true) }?.id }
     }
     var accountId by remember(review.id) { mutableStateOf(detectedAccountId) }
     var accountMenu by remember { mutableStateOf(false) }
@@ -427,7 +446,7 @@ private fun ReviewCard(vm: FinanceViewModel, state: UiState, review: PendingRevi
  * outcome for a pattern that read the message wrongly.
  */
 @Composable
-private fun ConfirmCard(vm: FinanceViewModel, review: PendingReview, sms: ParsedSms) {
+private fun ConfirmCard(vm: FinanceViewModel, review: PendingReview, sms: ParsedSms, onFix: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Text(review.sender, style = MaterialTheme.typography.labelMedium)
@@ -466,8 +485,9 @@ private fun ConfirmCard(vm: FinanceViewModel, review: PendingReview, sms: Parsed
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { vm.confirmReview(review.id) }) { Text("That is right") }
-                OutlinedButton(onClick = { vm.dismissReview(review.id) }) { Text("No, discard") }
+                OutlinedButton(onClick = onFix) { Text("Fix it") }
             }
+            TextButton(onClick = { vm.dismissReview(review.id) }) { Text("Not a transaction") }
         }
     }
 }

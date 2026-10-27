@@ -55,6 +55,7 @@ private val DATE_PATTERNS = listOf(
     "dd-MMM-yyyy", "dd-MMM-yy",
     "dd/MMM/yyyy", "dd/MMM/yy",
     "ddMMMyyyy", "ddMMMyy",
+    "dd MMM yyyy", "dd MMM yy",
     "dd-MM-yyyy", "dd-MM-yy",
     "dd/MM/yyyy", "dd/MM/yy",
     "dd.MM.yyyy", "dd.MM.yy",
@@ -75,6 +76,13 @@ private fun parseExact(pattern: String, text: String): Long? {
     val position = ParsePosition(0)
     val parsed = runCatching { formatter(pattern).parse(text, position) }.getOrNull() ?: return null
     if (position.index != text.length) return null
+    // The trap in the other direction: "yyyy" reads a two-digit year literally, so
+    // "11-Sep-26" through "dd-MMM-yyyy" is the year 26 AD - and it is tried first. The
+    // sanity check then threw that away for being two thousand years old and used the
+    // receipt time instead, so every two-digit-year date the app ever parsed (every ICICI
+    // alert among them) was silently the time the message arrived rather than the date it
+    // stated. Refused here, so the "yy" twin gets its turn.
+    if ("yyyy" in pattern && Calendar.getInstance(IST).apply { time = parsed }.get(Calendar.YEAR) < 1000) return null
     return parsed.time
 }
 
@@ -127,27 +135,117 @@ internal fun startOfDayIst(epochMillis: Long): Long = Calendar.getInstance(IST).
 
 internal fun istCalendar(): Calendar = Calendar.getInstance(IST)
 
+/** A date as any bank prints it, with the time that sometimes follows it. */
+private val DATE_IN_TEXT = Regex(
+    """(?<![\d])(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/ ]?[A-Za-z]{3}[-/ ]?\d{2,4}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})(?![\d])""" +
+        """(?:[\s,:]+(?:at\s+)?(\d{1,2}:\d{2}(?::\d{2})?))?""",
+)
+
+/**
+ * When a message says the money moved, falling back to when it arrived.
+ *
+ * For a message filed by hand from the tray. It used to be stamped with the moment you
+ * tapped Record, so an alert cleared from the tray on Monday was filed under Monday even
+ * though the bank said Friday - and a message from the 30th, cleared on the 2nd, landed in
+ * the wrong salary cycle and moved two months' totals at once.
+ *
+ * A stated date with no time is taken at the receipt time when they fall on the same day,
+ * which keeps the day's order honest; any other stated date stands at midnight.
+ */
+internal fun occurredAtFor(body: String, receivedAt: Long): Long {
+    val stated = DATE_IN_TEXT.findAll(body).firstNotNullOfOrNull { m ->
+        parseIndianDate(m.groupValues[1], m.groupValues[2].ifEmpty { null })
+    } ?: return receivedAt
+    val sameDayNoTime = stated == startOfDayIst(stated) && stated == startOfDayIst(receivedAt)
+    return if (sameDayNoTime) receivedAt else sanityCheckDate(stated, receivedAt)
+}
+
+private const val PAYEE_END =
+    """(?:\s+(?:on|via|using|avl|ref(?:erence)?(?:\s*no)?\b|through\b)|\s+(?:(?:Avl|Avb|Avbl|Available)\s+)?Bal\b|\s+Not\s+you\b|[,\n\r;]|\.$|$)"""
+
+private val FAVOURING = Regex(
+    """\bFvg:?\s*(.+?)(?:\s+(?:(?:Avl|Avb|Avbl|Available|Clear|Total|Current)\s+)?Bal(?:ance)?\b|[,\n\r;]|\s+Not\s+you\b|\s+If\s+not\s+you\b|\s+Call\s+\d+|\s+ref\s*no\b|\.$|$)""",
+    RegexOption.IGNORE_CASE,
+)
+private val TO_PAYEE = Regex("""\b(?:to|towards)\s+([A-Za-z0-9][A-Za-z0-9\s.&'/-]{1,50}?)$PAYEE_END""", RegexOption.IGNORE_CASE)
+private val VPA_PAYEE = Regex("""\b(?:VPA|vpa)\s+([a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+)""", RegexOption.IGNORE_CASE)
+
+/** "UPI/P2M/629812345678/SWIGGY" - the payee is the last segment of the UPI path. */
+private val UPI_PATH_PAYEE = Regex(
+    """\bUPI/(?:P2[AM]|DR|CR)/\w+/([^/\n.]+?)(?:\s+(?:Value|on)\b|/|\n|\.|$)""",
+    RegexOption.IGNORE_CASE,
+)
+
+/**
+ * Card spends: "spent on Card XX1234 at AMAZON on 12-Jan". Only after a word that says
+ * money was spent - "update your KYC at nearest branch" is an "at" too. A time never
+ * starts with a letter, which keeps "at 10:15" out.
+ */
+private val AT_PAYEE = Regex(
+    """\b(?:spent|spend|used|purchase|paid|charged)\b[^.\n]{0,80}?\bat\s+([A-Za-z][A-Za-z0-9\s.&'*/-]{1,50}?)(?:\s+on\b|\s+(?:Avl|Avb|Avbl|Available)\b|[,\n\r;(]|\.(?:\s|$)|$)""",
+    RegexOption.IGNORE_CASE,
+)
+
+/** Credits name whoever sent the money: "credited ... from R SRINIVASAN", "from VPA x@y". */
+private val FROM_PAYEE = Regex(
+    """\bfrom\s+(?:VPA\s+)?([A-Za-z0-9][A-Za-z0-9\s.&'@/-]{1,50}?)(?:\s+(?:on|via|using|avl|ref\s*no\b|through\b|UPI\b)|\s+(?:(?:Avl|Avb|Avbl|Available)\s+)?Bal\b|\s+Not\s+you\b|[,\n\r;(]|\.(?:\s|$)|$)""",
+    RegexOption.IGNORE_CASE,
+)
+
 /**
  * Generic payee extraction across all banks for standard patterns such as:
  * - "Fvg: AONE TRA" ("Favoring")
  * - "to <Payee>"
  * - "VPA <upi-id>"
+ *
+ * Kept in this order for callers that do not know the direction. See [extractGenericPayee].
  */
-internal val GENERIC_PAYEE_PATTERNS = listOf(
-    Regex("""\bFvg:?\s*(.+?)(?:\s+(?:(?:Avl|Avb|Avbl|Available|Clear|Total|Current)\s+)?Bal(?:ance)?\b|[,\n\r;]|\s+Not\s+you\b|\s+If\s+not\s+you\b|\s+Call\s+\d+|\s+ref\s*no\b|\.$|$)""", RegexOption.IGNORE_CASE),
-    Regex("""\b(?:to|towards)\s+([A-Za-z0-9][A-Za-z0-9\s.&'/-]{1,50}?)(?:\s+(?:on|via|using|avl|ref\s*no\b|through\b)|\s+(?:(?:Avl|Avb|Avbl|Available)\s+)?Bal\b|\s+Not\s+you\b|[,\n\r;]|\.$|$)""", RegexOption.IGNORE_CASE),
-    Regex("""\b(?:VPA|vpa)\s+([a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+)""", RegexOption.IGNORE_CASE),
+internal val GENERIC_PAYEE_PATTERNS = listOf(FAVOURING, TO_PAYEE, VPA_PAYEE)
+
+/**
+ * Money going out is named by who it went to; money coming in by who sent it. "to" in a
+ * credit is almost always our own account ("credited to your A/c"), and "from" in a debit
+ * is the same ("debited from A/c XX1234"), so each direction looks only where its
+ * counterparty actually stands.
+ */
+private val DEBIT_PAYEE_PATTERNS = listOf(FAVOURING, UPI_PATH_PAYEE, TO_PAYEE, AT_PAYEE, VPA_PAYEE)
+private val CREDIT_PAYEE_PATTERNS = listOf(FAVOURING, UPI_PATH_PAYEE, VPA_PAYEE, FROM_PAYEE)
+
+/**
+ * Things that sit where a payee would and are not one.
+ *
+ * Every entry was a real wrong answer. Union's trailer "SMS BLOCK 2209 to 8879365472" made the
+ * bank's own phone number the payee of every Union debit without a Fvg clause - and because
+ * rules are keyed on the payee, filing one of those as Food filed all of them as Food.
+ * "credited to your A/c XX2209" and "to HDFC Bank A/c XX1234" named our own account.
+ */
+private val NOT_A_PAYEE = listOf(
+    Regex("""^[+\d\s-]+$"""),
+    Regex("""^(?:your|ur|you|the|self|a/c|acct)\b""", RegexOption.IGNORE_CASE),
+    Regex("""\b(?:A/c|Acct|Account)\b""", RegexOption.IGNORE_CASE),
+    Regex("""[Xx*]{2,}\d{3,}"""),
 )
 
-internal fun extractGenericPayee(body: String): String? {
-    for (pattern in GENERIC_PAYEE_PATTERNS) {
-        val m = pattern.find(body)
-        if (m != null && m.groupValues.size > 1) {
-            val candidate = m.groupValues[1].trim()
-            if (candidate.isNotEmpty() && !candidate.equals("your", ignoreCase = true) && !candidate.equals("a/c", ignoreCase = true)) {
-                return candidate
-            }
-        }
+private fun isPlausiblePayee(candidate: String): Boolean =
+    candidate.length >= 2 && NOT_A_PAYEE.none { it.containsMatchIn(candidate) }
+
+/**
+ * The counterparty, from whichever of the common clauses the message uses.
+ *
+ * Every match of a clause is considered, not only the first, so a junk "to" early in the
+ * message no longer hides a real one - or a VPA - later on.
+ */
+internal fun extractGenericPayee(body: String, direction: Direction? = null): String? {
+    val patterns = when (direction) {
+        Direction.DEBIT -> DEBIT_PAYEE_PATTERNS
+        Direction.CREDIT -> CREDIT_PAYEE_PATTERNS
+        null -> GENERIC_PAYEE_PATTERNS
+    }
+    for (pattern in patterns) {
+        pattern.findAll(body)
+            .map { it.groupValues[1].trim() }
+            .firstOrNull(::isPlausiblePayee)
+            ?.let { return it }
     }
     return null
 }

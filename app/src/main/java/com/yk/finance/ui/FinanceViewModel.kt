@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yk.finance.data.Account
+import com.yk.finance.data.AccountAlias
 import com.yk.finance.data.AccountKind
 import com.yk.finance.data.Budget
 import com.yk.finance.data.Category
 import com.yk.finance.data.CategoryRule
 import com.yk.finance.data.CycleBoundary
 import com.yk.finance.data.CycleState
+import com.yk.finance.data.IgnoredAccount
 import com.yk.finance.data.ImportBatch
 import com.yk.finance.data.PendingReview
 import com.yk.finance.data.Prefs
@@ -621,7 +623,33 @@ class FinanceViewModel(
 
     fun bind(auto: Account, declared: Account) = viewModelScope.launch {
         repository.bindAutoAccountTo(auto, declared)
+        refreshDerived()
     }
+
+    /**
+     * Deletes [account], or moves its history to [moveToId] first. See Repository.deleteAccount.
+     *
+     * A Records filter left pointing at the deleted account would show an empty list under
+     * a chip naming an account that no longer exists, so it is cleared with it.
+     */
+    fun deleteAccount(account: Account, moveToId: Long?, stopTracking: Boolean) = viewModelScope.launch {
+        repository.deleteAccount(account, moveToId, stopTracking)
+        if (_filter.value.accountId == account.id) _filter.value = _filter.value.copy(accountId = null)
+        refreshDerived()
+    }
+
+    /** Accounts whose messages were switched off when they were deleted. */
+    val ignoredAccounts: StateFlow<List<IgnoredAccount>> = repository.ignoredAccounts
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun trackAgain(ignored: IgnoredAccount) = viewModelScope.launch {
+        repository.unignoreAccount(ignored.bank, ignored.accountToken)
+    }
+
+    /** Other digits each account answers to, keyed by account id. */
+    val accountAliases: StateFlow<Map<Long, List<AccountAlias>>> = repository.accountAliases
+        .map { aliases -> aliases.groupBy { it.accountId } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     fun reconcile(account: Account, actualPaise: Long) = viewModelScope.launch {
         repository.reconcile(account, actualPaise, System.currentTimeMillis())
@@ -742,10 +770,7 @@ class FinanceViewModel(
         payee: String?,
         categoryId: Long?,
     ) = viewModelScope.launch {
-        repository.recordFromReview(
-            reviewId, accountId, amountPaise, direction, payee, categoryId,
-            System.currentTimeMillis(),
-        )
+        repository.recordFromReview(reviewId, accountId, amountPaise, direction, payee, categoryId)
         refreshDerived()
     }
 

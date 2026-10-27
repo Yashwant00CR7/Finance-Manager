@@ -958,22 +958,49 @@ val RESEARCHED_PATTERNS: List<PatternSpec> =
  * this app has never heard of still shows up as a payment waiting to be confirmed rather
  * than as silence.
  */
+/**
+ * The word a bank uses for your account. "A/c" alone missed ICICI's "Account XX742" and
+ * "Acct", Kotak's "AC X3333" and every message that names its bank in between.
+ */
+private const val ACCOUNT_NOUN = """\b(?:A/[cC]|Acct|Account|Acc|AC)(?:\s*no\.?)?"""
+
+/**
+ * Up to four words between the preposition and the account noun, so "credited to HDFC Bank
+ * A/c" reads like "credited to A/c". Never "beneficiary" or "payee": "credited to beneficiary
+ * A/c" describes somebody else's account, and reading it as ours would turn a payment into
+ * income.
+ */
+private const val BANK_WORDS = """(?:(?!beneficiary\b|payee\b)[A-Za-z&]+\s+){0,4}?"""
+
 val GENERIC_PATTERNS: List<PatternSpec> = listOf(
     PatternSpec(
         id = "GENERIC.amount_first.v1",
         bank = "",
         tier = Tier.GENERIC,
         direction = null,
-        // "Rs.500.00 debited from A/c XX1234 on 01-01-26" and its credit twin.
-        regex = ci("""$CURRENCY\s*$A\s+(?<dir>debited|credited|deducted|withdrawn|deposited)\s+(?:from|to|in|into)\s+(?:your\s+)?A/[cC](?:\s*no\.?)?\s*$ACCT(?:\s+on\s+$DATE)?"""),
+        // "Rs.500.00 debited from A/c XX1234 on 01-01-26" and its credit twin; also
+        // "Rs.1.00 credited to HDFC Bank A/c XX1234", "INR 500.00 debited\nA/c no. XX1234"
+        // and "Rs 500 Dr from A/c XX1234".
+        regex = ci("""$CURRENCY\s*$A\s+(?<dir>debited|credited|deducted|withdrawn|deposited|Dr|Cr)\.?\s+(?:(?:from|to|in|into)\s+)?(?:your\s+|ur\s+)?$BANK_WORDS$ACCOUNT_NOUN\s*$ACCT(?:[\s,]+(?:on\s+)?$DATE)?"""),
     ),
     PatternSpec(
         id = "GENERIC.account_first.v1",
         bank = "",
         tier = Tier.GENERIC,
         direction = null,
-        // "A/c XX1234 is debited with Rs.500.00 on 01-01-26" and its credit twin.
-        regex = ci("""A/[cC](?:\s*no\.?)?\s*$ACCT\s+(?:is\s+|has\s+been\s+)?(?<dir>debited|credited)\s+(?:for|with|by)\s+$CURRENCY\s*$A(?:\s+on\s+$DATE)?"""),
+        // "A/c XX1234 is debited with Rs.500.00 on 01-01-26" and its credit twin; also
+        // "Account XX742 has been credited with INR 50,000.00" and SBI's currency-less
+        // "A/C X1234 debited by 50.0 on date 20Oct26", where nothing but the amount can
+        // stand straight after "debited by".
+        regex = ci("""$ACCOUNT_NOUN\s*$ACCT\s+(?:is\s+|has\s+been\s+)?(?<dir>debited|credited)\s+(?:for|with|by)\s+(?:$CURRENCY\s*)?$A(?:\s+on\s+(?:date\s+)?$DATE)?"""),
+    ),
+    PatternSpec(
+        id = "GENERIC.received_in.v1",
+        bank = "",
+        tier = Tier.GENERIC,
+        direction = Direction.CREDIT,
+        // "You have received Rs 250.00 in your ICICI Bank Acct XX742 from RAMESH on 20-Oct-26"
+        regex = ci("""received\s+$CURRENCY\s*$A\s+in\s+(?:your\s+)?$BANK_WORDS$ACCOUNT_NOUN\s*$ACCT(?:\s+from\s+(?<payee>[^.,]+?)(?=\s+on\s|[.,]|$))?(?:\s+on\s+$DATE)?"""),
     ),
     PatternSpec(
         id = "GENERIC.sent_from.v1",

@@ -1,6 +1,7 @@
 package com.yk.finance
 
 import android.app.Application
+import androidx.room.withTransaction
 import com.yk.finance.data.AppDatabase
 import com.yk.finance.data.FinanceDao
 import com.yk.finance.data.Prefs
@@ -44,7 +45,9 @@ class FinanceApplication : Application() {
 
     /** Holds the database, not just the dao: an import has to be one transaction. */
     val imports: ImportService by lazy { ImportService(database, dao) }
-    val repository: Repository by lazy { Repository(dao, imports, model, outcomes) }
+    val repository: Repository by lazy {
+        Repository(dao, imports, model, outcomes, atomically = { block -> database.withTransaction { block() } })
+    }
 
     /** Keeps the accuracy counters out of the domain layer, which has no Android in it. */
     private val outcomes = object : GuessOutcomes {
@@ -84,5 +87,9 @@ class FinanceApplication : Application() {
         // did before the model existed.
         model.autoFileEnabled = prefs.autoFileCategories
         model.rebuildFrom(dao.categorisedNotInferred())
+
+        // After the model, so anything filed here is categorised the way a live message
+        // would be. Picks up tray entries an updated parser can now read by itself.
+        ingestor.fileQueued()
     }
 }
