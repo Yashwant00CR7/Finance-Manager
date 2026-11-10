@@ -15,6 +15,7 @@ import com.yk.finance.parser.occurredAtFor
 import com.yk.finance.parser.parseIndianDate
 import com.yk.finance.parser.senderBankKey
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -62,7 +63,11 @@ class ParserCoverageTest {
             "VM-ICICIB",
             "ICICI Bank Acct XX742 debited for Rs 169.00 on 11-Sep-26; SRI LAKSHMI TRA credited. UPI:412233445566.",
         )
-        assertEquals(parseIndianDate("11-09-2026"), sms.occurredAt)
+        // The bank gave a day and no clock, and it is not the day the message arrived, so
+        // the row sits at midday and says the time is placed - never at a midnight the bank
+        // never stated.
+        assertEquals(parseIndianDate("11-09-2026", "12:00:00"), sms.occurredAt)
+        assertTrue(sms.timeWasInferred)
         assertEquals(parseIndianDate("07-01-2026"), parseIndianDate("07/01/26"))
         assertEquals(parseIndianDate("13-09-2025"), parseIndianDate("13Sep25"))
     }
@@ -335,16 +340,19 @@ class ParserCoverageTest {
     @Test
     fun `a message is dated by what it says, not by when it was filed`() {
         val received = parseIndianDate("25-10-2026", "09:00:00")!!
-        assertEquals(
-            parseIndianDate("22-10-2026", "10:40:05"),
-            occurredAtFor("Debited Rs:1755.00 on 22-10-2026 10:40:05 by Mob Bk", received),
-        )
-        assertEquals(
-            parseIndianDate("20-10-2026"),
-            occurredAtFor("debited by 50.0 on date 20Oct26 trf to SWIGGY", received),
-        )
+        val timed = occurredAtFor("Debited Rs:1755.00 on 22-10-2026 10:40:05 by Mob Bk", received)
+        assertEquals(parseIndianDate("22-10-2026", "10:40:05"), timed.millis)
+        assertFalse(timed.timeWasInferred)
+        // A date for another day with no clock: placed at midday, and flagged as placed.
+        val dateOnly = occurredAtFor("debited by 50.0 on date 20Oct26 trf to SWIGGY", received)
+        assertEquals(parseIndianDate("20-10-2026", "12:00:00"), dateOnly.millis)
+        assertTrue(dateOnly.timeWasInferred)
         // A stated date with no time, on the day it arrived, keeps the arrival time.
-        assertEquals(received, occurredAtFor("debited by 50.0 on date 25Oct26", received))
-        assertEquals(received, occurredAtFor("Rs 50 debited from A/c XX1234", received))
+        val sameDay = occurredAtFor("debited by 50.0 on date 25Oct26", received)
+        assertEquals(received, sameDay.millis)
+        assertFalse(sameDay.timeWasInferred)
+        val undated = occurredAtFor("Rs 50 debited from A/c XX1234", received)
+        assertEquals(received, undated.millis)
+        assertFalse(undated.timeWasInferred)
     }
 }

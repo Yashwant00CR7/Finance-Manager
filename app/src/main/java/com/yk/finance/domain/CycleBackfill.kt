@@ -64,13 +64,25 @@ object CycleBackfill {
         }
     }
 
-    /** Writes the boundary a live roll just crossed. Idempotent: the table ignores repeats. */
+    /**
+     * Writes the boundary a live roll just crossed. Idempotent: the table ignores repeats.
+     *
+     * A salary boundary also retires any *estimated* boundary sitting within the match
+     * window of it. The arithmetic put one at the last working day; the credit then landed
+     * a few days off it, and both were kept - two cycles a few days apart, both labelled
+     * the same month, the first of them nearly empty. The estimate was describing this
+     * same payday, worse, so it goes. A real salary boundary is never removed here.
+     */
     suspend fun record(dao: FinanceDao, startMillis: Long, fromSalary: Boolean, txnId: Long? = null) {
+        val start = CycleCalculator.startOfDayMillis(CycleCalculator.toLocalDate(startMillis))
+        if (fromSalary) {
+            dao.allBoundaries()
+                .filter { it.inferred && it.startMillis != start && near(it.startMillis, start) }
+                .forEach { dao.deleteBoundary(it.startMillis) }
+        }
         dao.insertBoundary(
             CycleBoundary(
-                startMillis = CycleCalculator.startOfDayMillis(
-                    CycleCalculator.toLocalDate(startMillis),
-                ),
+                startMillis = start,
                 source = if (fromSalary) "SALARY" else "FALLBACK",
                 inferred = !fromSalary,
                 txnId = txnId,
@@ -142,7 +154,8 @@ object CycleBackfill {
         return found.distinctBy { it.startMillis }.sortedBy { it.startMillis }
     }
 
-    private fun near(a: Long, b: Long): Boolean = abs(
+    /** Whether two boundaries are close enough to be the same payday described twice. */
+    fun near(a: Long, b: Long): Boolean = abs(
         ChronoUnit.DAYS.between(CycleCalculator.toLocalDate(a), CycleCalculator.toLocalDate(b)),
     ) <= MATCH_WINDOW_DAYS
 

@@ -47,6 +47,14 @@ data class ParsedSms(
 
     /** The alert was about a card, so this resolves to a card account, not a deposit one. */
     val isCard: Boolean = false,
+
+    /**
+     * [occurredAt] carries a clock the message never stated. True only when the bank gave
+     * a date for another day and no time, and the row was placed at midday. Written to
+     * [com.yk.finance.data.Txn.timeWasInferred], which is the same contract the importer
+     * keeps for a dated row with no time.
+     */
+    val timeWasInferred: Boolean = false,
 )
 
 /** The three things that can happen to an incoming SMS. */

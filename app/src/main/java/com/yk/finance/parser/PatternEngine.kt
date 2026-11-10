@@ -74,10 +74,11 @@ internal fun applySpec(
         ?: match.named("dir", declared)?.lowercase()?.let(DIRECTION_WORDS::get)
         ?: return null
 
-    // No date group at all is fine: sanityCheckDate falls back to the receipt time, which
-    // for a live alert is within seconds of the truth.
-    val occurred = sanityCheckDate(
-        match.named("date", declared)?.let { parseIndianDate(it, match.named("time", declared)) },
+    // No date group at all is fine: the receipt time stands in, which for a live alert is
+    // within seconds of the truth. See resolveOccurredAt for a date with no clock.
+    val occurred = resolveOccurredAt(
+        match.named("date", declared),
+        match.named("time", declared),
         receivedAt,
     )
 
@@ -96,7 +97,7 @@ internal fun applySpec(
         accountToken = account,
         direction = direction,
         amountPaise = amount,
-        occurredAt = occurred,
+        occurredAt = occurred.millis,
         payee = payee,
         reference = reference,
         availableBalancePaise =
@@ -108,5 +109,6 @@ internal fun applySpec(
         availableCreditPaise =
             balance.takeIf { spec.balanceMeaning == BalanceMeaning.AVAILABLE_CREDIT },
         isCard = spec.isCard,
+        timeWasInferred = occurred.timeWasInferred,
     )
 }

@@ -92,28 +92,29 @@ private fun parseExact(pattern: String, text: String): Long? {
  * Day-first is assumed throughout, which is safe here: Indian banks do not send US-style
  * month-first dates, so "05-09-26" is the fifth of September and never the ninth of May.
  */
-internal fun parseIndianDate(date: String, time: String? = null): Long? {
+internal fun parseIndianDate(date: String, time: String? = null): Long? =
+    parseIndianDateDetailed(date, time)?.millis
+
+/** A parsed instant, and whether the message actually stated the clock part of it. */
+internal data class ParsedDate(val millis: Long, val hasTime: Boolean)
+
+internal fun parseIndianDateDetailed(date: String, time: String? = null): ParsedDate? {
     val cleanDate = date.trim()
     val cleanTime = time?.trim()?.takeIf { it.isNotEmpty() }
 
     if (cleanTime != null) {
         for (datePattern in DATE_PATTERNS) {
             for (timePattern in TIME_PATTERNS) {
-                parseExact("$datePattern $timePattern", "$cleanDate $cleanTime")?.let { return it }
+                parseExact("$datePattern $timePattern", "$cleanDate $cleanTime")
+                    ?.let { return ParsedDate(it, hasTime = true) }
             }
         }
     }
     for (datePattern in DATE_PATTERNS) {
-        parseExact(datePattern, cleanDate)?.let { return it }
+        parseExact(datePattern, cleanDate)?.let { return ParsedDate(it, hasTime = false) }
     }
     return null
 }
-
-/** ICICI: "11-Sep-26". Two-digit year, so 26 -> 2026. */
-internal fun parseIciciDate(date: String): Long? = parseIndianDate(date)
-
-/** Union: "16-09-2026" with optional "11:23:34". */
-internal fun parseUnionDate(date: String, time: String?): Long? = parseIndianDate(date, time)
 
 /**
  * A bank date carries no year ambiguity we can trust blindly: a message received
@@ -133,6 +134,41 @@ internal fun startOfDayIst(epochMillis: Long): Long = Calendar.getInstance(IST).
     set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
 }.timeInMillis
 
+private const val HALF_DAY_MILLIS = 12 * 60 * 60 * 1000L
+
+/** When the money moved, and whether the clock on that instant is real or placed. */
+internal data class Occurrence(val millis: Long, val timeWasInferred: Boolean)
+
+/**
+ * The instant a message describes, from the date and time it states.
+ *
+ * Three cases, and the middle one is the reason this exists. A date *with* a time is the
+ * bank's own timestamp and stands. No date at all means the receipt time, which for a live
+ * alert is within seconds of the truth. A date with no time - every ICICI alert, "on
+ * 11-Sep-26" and nothing more - used to stand at midnight, which is a time the bank never
+ * said and the one least likely to be right: it sorted the payment before everything else
+ * that day and taught the model that ICICI spending happens at NIGHT. Now, when that date
+ * is the day the message arrived, the receipt time stands in, because the alert follows the
+ * transaction by seconds; when it is some other day, the row is placed at midday and
+ * flagged, exactly as the importer places a dated row with no clock, so nothing downstream
+ * mistakes the guess for a fact.
+ *
+ * A stated date the sanity check refuses - more than a day ahead, or years back - falls to
+ * the receipt time as before, and that is a real clock, so it is not flagged.
+ */
+internal fun resolveOccurredAt(date: String?, time: String?, receivedAt: Long): Occurrence {
+    val stated = date?.let { parseIndianDateDetailed(it, time) }
+        ?: return Occurrence(receivedAt, timeWasInferred = false)
+    val checked = sanityCheckDate(stated.millis, receivedAt)
+    if (checked != stated.millis) return Occurrence(receivedAt, timeWasInferred = false)
+    if (stated.hasTime) return Occurrence(stated.millis, timeWasInferred = false)
+    return if (startOfDayIst(stated.millis) == startOfDayIst(receivedAt)) {
+        Occurrence(receivedAt, timeWasInferred = false)
+    } else {
+        Occurrence(stated.millis + HALF_DAY_MILLIS, timeWasInferred = true)
+    }
+}
+
 internal fun istCalendar(): Calendar = Calendar.getInstance(IST)
 
 /** A date as any bank prints it, with the time that sometimes follows it. */
@@ -149,15 +185,15 @@ private val DATE_IN_TEXT = Regex(
  * though the bank said Friday - and a message from the 30th, cleared on the 2nd, landed in
  * the wrong salary cycle and moved two months' totals at once.
  *
- * A stated date with no time is taken at the receipt time when they fall on the same day,
- * which keeps the day's order honest; any other stated date stands at midnight.
+ * The date and time found are resolved by [resolveOccurredAt], under the same rules every
+ * parsed message gets: a dateless message is the receipt time, a same-day date with no
+ * clock is too, and a dated message with no clock is placed at midday and says so.
  */
-internal fun occurredAtFor(body: String, receivedAt: Long): Long {
-    val stated = DATE_IN_TEXT.findAll(body).firstNotNullOfOrNull { m ->
-        parseIndianDate(m.groupValues[1], m.groupValues[2].ifEmpty { null })
-    } ?: return receivedAt
-    val sameDayNoTime = stated == startOfDayIst(stated) && stated == startOfDayIst(receivedAt)
-    return if (sameDayNoTime) receivedAt else sanityCheckDate(stated, receivedAt)
+internal fun occurredAtFor(body: String, receivedAt: Long): Occurrence {
+    val stated = DATE_IN_TEXT.findAll(body).firstOrNull { m ->
+        parseIndianDate(m.groupValues[1], m.groupValues[2].ifEmpty { null }) != null
+    } ?: return Occurrence(receivedAt, timeWasInferred = false)
+    return resolveOccurredAt(stated.groupValues[1], stated.groupValues[2].ifEmpty { null }, receivedAt)
 }
 
 private const val PAYEE_END =

@@ -286,7 +286,11 @@ fun AccountsScreen(
                                 text = { Text("Rename, icon and colour") },
                                 onClick = { menuOpen = false; editing = account },
                             )
-                            if (account.kind != AccountKind.CASH) {
+                            // Not for a card: the app deliberately holds no balance for one,
+                            // because the figure a card alert carries is the remaining limit,
+                            // not money you hold. Offering to "correct" a number that is never
+                            // computed would write an asset out of a debt.
+                            if (account.kind == AccountKind.BANK) {
                                 DropdownMenuItem(
                                     text = { Text("Reconcile balance") },
                                     onClick = { menuOpen = false; reconciling = account },
@@ -352,6 +356,8 @@ fun AccountsScreen(
 
     if (adding) {
         AddAccountDialog(
+            // One wallet. Offering a second collided with the unique (bank, token) index.
+            offerCash = state.cashAccount == null,
             onDismiss = { adding = false },
             onAdd = { name, openingPaise, isCash ->
                 vm.addDeclaredAccount(name, openingPaise, isCash)
@@ -518,7 +524,11 @@ private fun ReconcileDialog(account: Account, onDismiss: () -> Unit, onConfirm: 
 }
 
 @Composable
-private fun AddAccountDialog(onDismiss: () -> Unit, onAdd: (String, Long, Boolean) -> Unit) {
+private fun AddAccountDialog(
+    offerCash: Boolean,
+    onDismiss: () -> Unit,
+    onAdd: (String, Long, Boolean) -> Unit,
+) {
     var name by remember { mutableStateOf("") }
     var opening by remember { mutableStateOf("") }
     AlertDialog(
@@ -546,8 +556,12 @@ private fun AddAccountDialog(onDismiss: () -> Unit, onAdd: (String, Long, Boolea
             ) { Text("Add bank account") }
         },
         dismissButton = {
-            TextButton(onClick = { onAdd(name.ifBlank { "Cash" }, rupeesToPaise(opening) ?: 0L, true) }) {
-                Text("Add cash")
+            if (offerCash) {
+                TextButton(onClick = { onAdd(name.ifBlank { "Cash" }, rupeesToPaise(opening) ?: 0L, true) }) {
+                    Text("Add cash")
+                }
+            } else {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },
     )

@@ -242,14 +242,31 @@ fun EntryScreen(
                                 occurredAt = occurredAt,
                             )
                         } else {
+                            // A transfer leg keeps the direction it has. Deriving it from
+                            // the type chip sent DEBIT for the credit leg of a transfer -
+                            // TRANSFER is not INCOME - and saving a note on it rewrote the
+                            // leg as money going out.
+                            val direction = when {
+                                isTransferLeg -> existing.direction
+                                type == TypeFilter.INCOME -> Direction.CREDIT
+                                else -> Direction.DEBIT
+                            }
+                            // A hand-entered row's payee is the note you typed, mirrored
+                            // (see saveEntry), and the list shows the payee first. Keeping
+                            // the old payee here meant editing the note changed nothing you
+                            // could see. A payee the bank printed, or one typed into the
+                            // inbox over a message, is evidence and stays.
+                            val mirroredNote = existing.source == TxnSource.MANUAL &&
+                                existing.rawMessage == null &&
+                                (existing.payee == null || existing.payee == existing.note)
                             vm.updateEntry(
                                 id = existing.id,
                                 accountId = account,
-                                direction = if (type == TypeFilter.INCOME) Direction.CREDIT else Direction.DEBIT,
+                                direction = direction,
                                 amountPaise = if (amountUnlocked) paise else existing.amountPaise,
                                 categoryId = categoryId,
                                 note = note.ifBlank { null },
-                                payee = existing.payee ?: note.ifBlank { null },
+                                payee = if (mirroredNote) note.ifBlank { null } else existing.payee ?: note.ifBlank { null },
                                 occurredAt = occurredAt,
                             )
                         }

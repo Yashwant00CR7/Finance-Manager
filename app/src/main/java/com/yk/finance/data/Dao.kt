@@ -258,8 +258,27 @@ interface FinanceDao {
     @Query("DELETE FROM budgets WHERE categoryId = :id")
     suspend fun deleteBudgetsForCategory(id: Long)
 
-    @Upsert
-    suspend fun upsertRule(rule: CategoryRule)
+    /**
+     * Writes or rewrites the rule for a payee.
+     *
+     * Deliberately not Room's @Upsert. That falls back, on a conflict, to an UPDATE keyed
+     * on the primary key - and a freshly built CategoryRule carries id 0, so a conflict on
+     * the unique payeeKey index was followed by an update that matched no row. Correcting
+     * a payee a second time therefore changed nothing: the first category you ever chose
+     * for a shop was the one it kept forever. Keyed on the payee instead, which is the
+     * identity a rule actually has.
+     */
+    suspend fun upsertRule(rule: CategoryRule) {
+        if (insertRuleIfAbsent(rule) == -1L) {
+            updateRuleByKey(rule.payeeKey, rule.categoryId, rule.learned)
+        }
+    }
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertRuleIfAbsent(rule: CategoryRule): Long
+
+    @Query("UPDATE category_rules SET categoryId = :categoryId, learned = :learned WHERE payeeKey = :key")
+    suspend fun updateRuleByKey(key: String, categoryId: Long, learned: Boolean)
 
     /**
      * Candidates for a newly learned rule to back-fill.

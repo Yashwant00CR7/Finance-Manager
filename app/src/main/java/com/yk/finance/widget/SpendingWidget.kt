@@ -14,7 +14,6 @@ import com.yk.finance.R
 import com.yk.finance.domain.BudgetResolver
 import com.yk.finance.domain.CycleCalculator
 import com.yk.finance.domain.Ledger
-import com.yk.finance.domain.Periods
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -130,8 +129,13 @@ class SpendingWidget : AppWidgetProvider() {
             .filter(Ledger::isIncome)
             .sumOf { it.amountPaise }
 
+        // Resolved against the cycle start itself, which is what the Budgets screen and the
+        // alerts use. The resolver already accepts a row pinned to either the cycle start
+        // or the month it is labelled with; passing it the month start instead made a
+        // "this cycle only" cap written moments ago invisible here until the next launch
+        // re-pinned it, so the widget and the app disagreed about the ceiling.
         val budget = BudgetResolver
-            .effective(app.dao.allBudgets(), Periods.labelledMonthStart(cycleStart))
+            .effective(app.dao.allBudgets(), cycleStart)
             .firstOrNull { it.budget.categoryId == null }
             ?.budget
             ?.limitPaise

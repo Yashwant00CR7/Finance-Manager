@@ -95,7 +95,9 @@ object IciciRule : BankRule {
                 ?: return null
 
         val amount = parseAmountToPaise(match.groupValues[2]) ?: return null
-        val occurred = sanityCheckDate(parseIciciDate(match.groupValues[3]), receivedAt)
+        // ICICI prints a date and never a time, so this is where resolveOccurredAt's
+        // date-only rule does most of its work.
+        val occurred = resolveOccurredAt(match.groupValues[3], null, receivedAt)
 
         val payee = when (direction) {
             Direction.DEBIT -> PAYEE_DEBIT.find(body)?.groupValues?.get(1)?.trim()
@@ -108,12 +110,13 @@ object IciciRule : BankRule {
             accountToken = match.groupValues[1],
             direction = direction,
             amountPaise = amount,
-            occurredAt = occurred,
+            occurredAt = occurred.millis,
             payee = payee,
             reference = (REF.find(body) ?: TRANSFER_REF.find(body))?.groupValues?.get(1),
             availableBalancePaise = AVL_BAL.find(body)?.groupValues?.get(1)?.let(::parseAmountToPaise),
             channel = detectChannel(body),
             raw = body,
+            timeWasInferred = occurred.timeWasInferred,
         )
     }
 }
@@ -154,17 +157,15 @@ object UnionRule : BankRule {
     override fun tryParse(body: String, receivedAt: Long): ParsedSms? {
         val m = TXN.find(body) ?: return null
         val amount = parseAmountToPaise(m.groupValues[3]) ?: return null
-        val occurred = sanityCheckDate(
-            parseUnionDate(m.groupValues[4], m.groupValues.getOrNull(5)),
-            receivedAt,
-        )
+        val occurred = resolveOccurredAt(m.groupValues[4], m.groupValues.getOrNull(5), receivedAt)
         val direction = if (m.groupValues[2].equals("Debited", true)) Direction.DEBIT else Direction.CREDIT
         return ParsedSms(
             bank = bank,
             accountToken = m.groupValues[1],
             direction = direction,
             amountPaise = amount,
-            occurredAt = occurred,
+            occurredAt = occurred.millis,
+            timeWasInferred = occurred.timeWasInferred,
             // "by Mob Bk" names the channel, not who was paid. Used as a debit's payee it made
             // one category rule out of every Union payment without a Fvg clause - file one as
             // Food and the next fifty were Food. Credits keep it, because a salary tagged

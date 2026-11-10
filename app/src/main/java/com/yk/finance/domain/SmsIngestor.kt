@@ -293,6 +293,7 @@ class SmsIngestor(
                     transferGroupId = groupId,
                     source = TxnSource.TRANSFER_LEG,
                     note = "Moved to Cash wallet - log what you spend it on",
+                    timeWasInferred = sms.timeWasInferred,
                 ),
             )
             dao.adjustBalance(cash.id, sms.amountPaise)
@@ -346,6 +347,7 @@ class SmsIngestor(
                 source = source,
                 rawMessage = sms.raw,
                 categoryWasInferred = categoryWasInferred,
+                timeWasInferred = sms.timeWasInferred,
             ),
         )
     }

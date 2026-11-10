@@ -564,7 +564,7 @@ class FinanceViewModel(
         occurredAt: Long,
     ) = viewModelScope.launch {
         val before = state.value.transactions.firstOrNull { it.id == id }
-        repository.updateTransaction(
+        val written = repository.updateTransaction(
             id = id,
             accountId = accountId,
             direction = direction,
@@ -578,7 +578,13 @@ class FinanceViewModel(
         // repository with nothing said - you went in to fix a note, nudged the
         // category, and changed what the app does with that shop forever. Now it
         // surfaces, with the chance to take it back.
-        if (categoryId != null && categoryId != before?.categoryId) {
+        //
+        // Only from spending, and only from an edit that was actually written. A rule
+        // learned from an income row mapped the payee to an income category, and the
+        // ingestor applies rules to debits without asking - so the next payment to that
+        // payee was filed as Salary. An edit the repository refused taught nothing
+        // either, since the row still says what it said before.
+        if (written && direction == Direction.DEBIT && categoryId != null && categoryId != before?.categoryId) {
             _learned.value = repository.learnFromEdit(payee, categoryId)
         }
         refreshDerived()
@@ -911,7 +917,14 @@ class FinanceViewModel(
             }
 
             val boundaries = derived.toMutableList()
-            for (recorded in recordedBoundaries) {
+            // Estimated boundaries first, observed ones last: each recorded boundary
+            // retires whatever already sits within the window of it, so the order
+            // decides which of two near-duplicates survives. A FALLBACK row written
+            // before the salary actually landed and the SALARY row written when it did
+            // are the same payday, and the one read from a real credit must be the one
+            // that stays - otherwise the strip showed two "October" cycles a few days
+            // apart, the first of them nearly empty.
+            for (recorded in recordedBoundaries.sortedBy { if (it.inferred) 0 else 1 }) {
                 boundaries.removeAll { b ->
                     abs(
                         ChronoUnit.DAYS.between(

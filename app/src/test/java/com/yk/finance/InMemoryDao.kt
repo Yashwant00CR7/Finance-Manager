@@ -155,7 +155,16 @@ class InMemoryDao : FinanceDao {
     override suspend fun moveRulesToCategory(fromId: Long, toId: Long) = unused()
     override suspend fun moveBudgetsToCategory(fromId: Long, toId: Long) = unused()
     override suspend fun deleteBudgetsForCategory(id: Long) = unused()
-    override suspend fun upsertRule(rule: CategoryRule) { rules[rule.payeeKey] = rule }
+    // Mirrors the real table: insert refuses a duplicate key, the update finds it by key.
+    override suspend fun insertRuleIfAbsent(rule: CategoryRule): Long {
+        if (rule.payeeKey in rules) return -1
+        val row = rule.copy(id = if (rule.id == 0L) id() else rule.id)
+        rules[row.payeeKey] = row
+        return row.id
+    }
+    override suspend fun updateRuleByKey(key: String, categoryId: Long, learned: Boolean) {
+        rules[key]?.let { rules[key] = it.copy(categoryId = categoryId, learned = learned) }
+    }
     override suspend fun uncategorisedWithPayee() = txns.values.filter { it.categoryId == null && it.payee != null }
     override suspend fun setCategoryForIds(ids: List<Long>, categoryId: Long) {
         ids.forEach { id -> txns[id]?.let { txns[id] = it.copy(categoryId = categoryId) } }

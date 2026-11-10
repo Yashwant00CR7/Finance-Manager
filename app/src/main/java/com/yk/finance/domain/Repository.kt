@@ -180,6 +180,10 @@ class Repository(
 
     /** Setup wizard: plain-language accounts, no bank codes or digits required. */
     suspend fun createDeclaredAccount(name: String, openingBalancePaise: Long, isCash: Boolean) {
+        // There is one Cash wallet, and (bank, accountToken) is unique, so a second one
+        // is not a new account but a constraint failure that crashed the Accounts tab.
+        // The wallet already there is the one meant; nothing to add.
+        if (isCash && dao.cashAccount() != null) return
         dao.insertAccount(
             Account(
                 displayName = name,
@@ -433,7 +437,20 @@ class Repository(
         if (txn.categoryWasInferred) {
             if (txn.categoryId == categoryId) outcomes.confirmed() else outcomes.corrected()
         }
-        val decided = txn.copy(categoryId = categoryId, categoryWasInferred = false)
+        // A split part's spending flag follows its category: moving a part from a LENT
+        // category to Food makes it spending again, and the reverse takes it out. Any
+        // other row keeps the flag it has - a transfer leg or an adjustment is not
+        // promoted into spending by being labelled.
+        val countsAsSpending = if (txn.splitGroupId != null) {
+            txn.direction == Direction.DEBIT && sharingLookup()(categoryId) != Sharing.LENT
+        } else {
+            txn.countsAsSpending
+        }
+        val decided = txn.copy(
+            categoryId = categoryId,
+            categoryWasInferred = false,
+            countsAsSpending = countsAsSpending,
+        )
         dao.updateTxn(decided)
 
         // The model has to end up believing exactly what the ledger says, so a change
@@ -774,18 +791,20 @@ class Repository(
                     .forEach { dao.upsertRule(CategoryRule(payeeKey = it, categoryId = categoryId)) }
             }
 
+            val occurred = occurredAtFor(review.rawMessage, review.receivedAt)
             dao.insertTxn(
                 Txn(
                     accountId = accountId,
                     direction = direction,
                     amountPaise = amountPaise,
-                    occurredAt = occurredAtFor(review.rawMessage, review.receivedAt),
+                    occurredAt = occurred.millis,
                     payee = payee,
                     reference = null,
                     categoryId = categoryId,
                     countsAsSpending = direction == Direction.DEBIT,
                     source = TxnSource.MANUAL,
                     rawMessage = review.rawMessage,
+                    timeWasInferred = occurred.timeWasInferred,
                 ),
             )
             dao.adjustBalance(accountId, if (direction == Direction.DEBIT) -amountPaise else amountPaise)
@@ -838,18 +857,26 @@ class Repository(
         payee: String?,
         note: String?,
         categoryId: Long?,
-    ) {
-        val existing = dao.txnById(id) ?: return
+    ): Boolean {
+        val existing = dao.txnById(id) ?: return false
         // A split part's *amount* is the group's business, never one row's. Let this
         // through and the group stops summing to what the bank took - 200 + 150 against
         // a 320 debit - while every part still looks like a perfectly ordinary
         // transaction, so nothing on screen would ever show the disagreement. Narrowed
         // to the amount rather than the whole row, because fixing a note or a date on
         // one part breaks nothing.
-        if (existing.splitGroupId != null && amountPaise != existing.amountPaise) return
+        if (existing.splitGroupId != null && amountPaise != existing.amountPaise) return false
         // A transfer leg's amount is fixed: editing one leg independently would desync
         // the pair and drift account balances.
-        if (existing.transferGroupId != null && amountPaise != existing.amountPaise) return
+        val isTransferLeg = existing.transferGroupId != null || existing.source == TxnSource.TRANSFER_LEG
+        if (isTransferLeg && amountPaise != existing.amountPaise) return false
+        // So are its direction and account. The edit screen used to send DEBIT for any
+        // row that was not income, so saving a note on the *credit* leg of a transfer
+        // rewrote it as a debit: the reversal below gave back -amount, the re-apply took
+        // -amount again, and the receiving account ended 2x the transfer short. Both
+        // fields belong to the pair, so an edit to one leg cannot touch them.
+        val newDirection = if (isTransferLeg) existing.direction else direction
+        val newAccountId = if (isTransferLeg) existing.accountId else accountId
         dao.adjustBalance(
             existing.accountId,
             if (existing.direction == Direction.DEBIT) existing.amountPaise else -existing.amountPaise,
@@ -857,14 +884,20 @@ class Repository(
         val countsAsSpending = when {
             // A transfer leg or a correction stays what it is; editing its note must
             // not promote it into spending and double-count money that never moved.
-            existing.source == TxnSource.TRANSFER_LEG -> false
+            isTransferLeg -> false
             existing.source == TxnSource.ADJUSTMENT -> false
-            else -> direction == Direction.DEBIT
+            // A part of a split bill filed as money someone owes you is carried as a
+            // debt, not as spending (see Splitter). Reading the flag off the direction
+            // alone turned a LENT part back into expenditure the moment its note was
+            // fixed, and moved a month's total by money that was never yours to spend.
+            existing.splitGroupId != null ->
+                newDirection == Direction.DEBIT && sharingLookup()(categoryId) != Sharing.LENT
+            else -> newDirection == Direction.DEBIT
         }
         dao.updateTxn(
             existing.copy(
-                accountId = accountId,
-                direction = direction,
+                accountId = newAccountId,
+                direction = newDirection,
                 amountPaise = amountPaise,
                 occurredAt = occurredAt,
                 payee = payee,
@@ -873,7 +906,8 @@ class Repository(
                 countsAsSpending = countsAsSpending,
             ),
         )
-        dao.adjustBalance(accountId, if (direction == Direction.DEBIT) -amountPaise else amountPaise)
+        dao.adjustBalance(newAccountId, if (newDirection == Direction.DEBIT) -amountPaise else amountPaise)
+        return true
     }
 
     /**
@@ -997,7 +1031,15 @@ class Repository(
     }
 
     suspend fun updateCategory(category: Category, name: String, iconKey: String, colourHex: String) {
-        val wanted = name.trim().ifEmpty { category.name }
+        // A rename onto a name another category already holds is refused rather than
+        // written: two "Food" rows look like one on every screen, and CategorySync
+        // would re-seed the vacated name on the next launch, so the rename could never
+        // actually stick. The look still changes; only the clashing name is kept as it was.
+        val typed = name.trim()
+        val taken = typed.isNotEmpty() &&
+            !typed.equals(category.name, ignoreCase = true) &&
+            dao.categoryByName(typed)?.let { it.id != category.id } == true
+        val wanted = if (typed.isEmpty() || taken) category.name else typed
         dao.updateCategory(category.copy(name = wanted, iconKey = iconKey, colourHex = colourHex))
     }
 

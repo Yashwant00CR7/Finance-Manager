@@ -78,6 +78,7 @@ object Features {
         accountId = accountId,
         channel = sms.channel,
         direction = sms.direction,
+        timeWasInferred = sms.timeWasInferred,
     )
 
     /**
