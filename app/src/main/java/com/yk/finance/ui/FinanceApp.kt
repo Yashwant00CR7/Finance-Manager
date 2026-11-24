@@ -108,14 +108,19 @@ fun FinanceApp(app: FinanceApplication, widgetRoute: String? = null) {
     val inbox by vm.inboxCount.collectAsState()
 
     // RECEIVE_SMS is the whole product; POST_NOTIFICATIONS only gates budget alerts,
-    // which on Android 13+ fail silently without it.
+    // which on Android 13+ fail silently without it. READ_SMS is only for catching up on
+    // messages a power-saving mode kept from the receiver, so the first scan runs the
+    // moment it is granted rather than waiting for the next time the app is opened.
     val permissions = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { }
+    ) { granted ->
+        if (granted[Manifest.permission.READ_SMS] == true) app.requestCatchUp()
+    }
 
     LaunchedEffect(Unit) {
         val wanted = buildList {
             add(Manifest.permission.RECEIVE_SMS)
+            add(Manifest.permission.READ_SMS)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(Manifest.permission.POST_NOTIFICATIONS)
             }

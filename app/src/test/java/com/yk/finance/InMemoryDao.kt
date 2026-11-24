@@ -20,7 +20,9 @@ import com.yk.finance.data.ImportedRow
 import com.yk.finance.data.LearnedPattern
 import com.yk.finance.data.PendingReview
 import com.yk.finance.data.QuickAddSuggestion
+import com.yk.finance.data.SeenMessage
 import com.yk.finance.data.Txn
+import com.yk.finance.data.TxnSource
 import com.yk.finance.domain.ImportService
 import com.yk.finance.domain.Repository
 import com.yk.finance.parser.Direction
@@ -102,6 +104,25 @@ class InMemoryDao : FinanceDao {
     override suspend fun isAccountIgnored(bank: String, token: String) = (bank to token) in ignored
     override fun observeIgnoredAccounts(): Flow<List<IgnoredAccount>> = emptyFlow()
     override suspend fun unignoreAccount(bank: String, token: String) { ignored.remove(bank to token) }
+
+    // ----- messages already processed -----
+    val seen = linkedMapOf<Pair<String, Long>, SeenMessage>()
+    override suspend fun markSeen(message: SeenMessage): Long {
+        val key = message.bodyKey to message.sentAt
+        if (key in seen) return -1
+        seen[key] = message
+        return seen.size.toLong()
+    }
+    override suspend fun unmarkSeen(bodyKey: String, sentAt: Long) { seen.remove(bodyKey to sentAt) }
+    override suspend fun pruneSeen(before: Long) { seen.values.removeAll { it.receivedAt < before } }
+    override suspend fun hasSeenBodyNear(bodyKey: String, from: Long, to: Long) =
+        seen.values.any { it.bodyKey == bodyKey && it.receivedAt in from..to }
+    override suspend fun hasSeenBody(bodyKey: String) = seen.keys.any { it.first == bodyKey }
+    override suspend fun txnHasRawMessage(body: String) = txns.values.any { it.rawMessage == body }
+    override suspend fun reviewHasRawMessage(body: String) = reviews.values.any { it.rawMessage == body }
+    override suspend fun latestSmsTxnAt(): Long? =
+        txns.values.filter { it.source == TxnSource.SMS }.maxOfOrNull { it.occurredAt }
+    override suspend fun latestReviewAt(): Long? = reviews.values.maxOfOrNull { it.receivedAt }
 
     // ----- transactions -----
     override suspend fun insertTxn(txn: Txn): Long {

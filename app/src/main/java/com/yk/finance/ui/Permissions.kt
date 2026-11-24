@@ -35,6 +35,10 @@ fun isSmsPermissionGranted(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) ==
         PackageManager.PERMISSION_GRANTED
 
+fun isInboxReadGranted(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) ==
+        PackageManager.PERMISSION_GRANTED
+
 fun openAppSettings(context: Context) {
     context.startActivity(
         Intent(
@@ -49,13 +53,20 @@ fun openAppSettings(context: Context) {
  * without a restart - which is the whole journey this exists to support.
  */
 @Composable
-fun rememberSmsPermissionGranted(): Boolean {
+fun rememberSmsPermissionGranted(): Boolean = rememberPermissionState(::isSmsPermissionGranted)
+
+/** Same as [rememberSmsPermissionGranted], for the inbox catch-up's READ_SMS. */
+@Composable
+fun rememberInboxReadGranted(): Boolean = rememberPermissionState(::isInboxReadGranted)
+
+@Composable
+private fun rememberPermissionState(check: (Context) -> Boolean): Boolean {
     val context = LocalContext.current
-    var granted by remember { mutableStateOf(isSmsPermissionGranted(context)) }
+    var granted by remember { mutableStateOf(check(context)) }
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) granted = isSmsPermissionGranted(context)
+            if (event == Lifecycle.Event.ON_RESUME) granted = check(context)
         }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
@@ -87,7 +98,7 @@ fun MissingSmsPermissionCard() {
             Spacer(Modifier.height(4.dp))
             Text(
                 "SMS access is off, so no bank transaction can be recorded. Anything " +
-                    "that arrives while it is off is missed for good - there is no catch-up.",
+                    "that arrives while it is off is missed until access is back.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(Modifier.height(8.dp))
@@ -96,6 +107,38 @@ fun MissingSmsPermissionCard() {
                     "Play Store and Android blocks it by default. On the page below tap " +
                     "the three dots at the top right, choose \"Allow restricted settings\", " +
                     "and then open Permissions.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = { openAppSettings(context) }) { Text("Open app settings") }
+        }
+    }
+}
+
+/**
+ * Shown when the live receiver works but the inbox catch-up cannot.
+ *
+ * Quieter than [MissingSmsPermissionCard] because nothing is broken day to day. It only
+ * matters on phones whose power-saving mode blocks incoming SMS broadcasts, and on those
+ * it is the difference between a missed payment and a recovered one.
+ */
+@Composable
+fun MissingInboxReadCard() {
+    val context = LocalContext.current
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Catch-up after power saving is off", fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Some power-saving modes stop bank messages reaching the app. With " +
+                    "permission to read SMS, the app looks in your inbox for anything it " +
+                    "missed each time you open it. Nothing it reads leaves the phone.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "In app settings open Permissions, then SMS. If it is greyed out, tap the " +
+                    "three dots at the top right and choose \"Allow restricted settings\" first.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(Modifier.height(8.dp))

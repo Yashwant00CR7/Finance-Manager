@@ -8,6 +8,7 @@ import android.util.Log
 import com.yk.finance.FinanceApplication
 import com.yk.finance.domain.AttentionPrompt
 import com.yk.finance.domain.CategoryPrompt
+import com.yk.finance.domain.InboxSms
 import com.yk.finance.domain.IngestOutcome
 import com.yk.finance.domain.RecordedAlert
 import com.yk.finance.widget.WidgetRefresh
@@ -34,13 +35,22 @@ class SmsReceiver : BroadcastReceiver() {
         val sender = messages.first().originatingAddress.orEmpty()
         val body = messages.joinToString(separator = "") { it.messageBody.orEmpty() }
         val receivedAt = System.currentTimeMillis()
+        // The network's timestamp, the same value the inbox keeps as date_sent. It is what
+        // lets a later inbox scan recognise this message as one already handled.
+        val sentAt = messages.first().timestampMillis
 
         val app = context.applicationContext as FinanceApplication
         val pending = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val outcome = app.ingestor.ingest(sender, body, receivedAt)
+                val outcome = app.gate.ingestOnce(
+                    InboxSms(sender, body, sentAt, receivedAt),
+                    checkLedger = false,
+                ) ?: run {
+                    Log.d(TAG, "already handled by a catch-up scan")
+                    return@launch
+                }
                 // Anything that reached the ledger moves the widget's figures. Asked
                 // for unconditionally rather than per-outcome: a transfer leg changes
                 // no total but a dropped duplicate proves the widget is already right,

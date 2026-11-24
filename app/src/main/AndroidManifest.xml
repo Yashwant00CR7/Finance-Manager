@@ -2,9 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Auto-capture of bank alerts. RECEIVE_SMS only: there is no inbox backfill,
-         so READ_SMS is deliberately not requested. -->
+    <!-- Auto-capture of bank alerts. -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <!-- Catch-up only. Power-saving modes on several phones stop delivering SMS_RECEIVED,
+         and the inbox is the one place those messages still exist. The scan reads inbox
+         messages newer than its last run and nothing else, and with INTERNET stripped
+         below, what it reads cannot leave the phone. -->
+    <uses-permission android:name="android.permission.READ_SMS" />
 
     <!--
         The app has no network access, and this is what keeps it that way.

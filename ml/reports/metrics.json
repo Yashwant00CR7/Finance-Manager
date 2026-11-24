@@ -1,0 +1,1047 @@
+{
+  "dataset": {
+    "real": 1183,
+    "gold_real": 476,
+    "synthetic": 21090,
+    "banks": 57,
+    "types_real": [
+      [
+        "CARD_SPEND",
+        339
+      ],
+      [
+        "DEBIT",
+        218
+      ],
+      [
+        "CREDIT",
+        164
+      ],
+      [
+        "PROMO",
+        131
+      ],
+      [
+        "INFO",
+        122
+      ],
+      [
+        "OTP",
+        80
+      ],
+      [
+        "MANDATE_FUTURE",
+        50
+      ],
+      [
+        "REFUND",
+        30
+      ],
+      [
+        "CARD_PAYMENT",
+        21
+      ],
+      [
+        "FAILED",
+        13
+      ],
+      [
+        "ATM_WITHDRAWAL",
+        6
+      ],
+      [
+        "BILL_DUE",
+        5
+      ],
+      [
+        "BALANCE_INFO",
+        4
+      ]
+    ],
+    "banks_real": [
+      [
+        "ICICI",
+        304
+      ],
+      [
+        "NONBANK",
+        292
+      ],
+      [
+        "RBL",
+        51
+      ],
+      [
+        "HDFC",
+        42
+      ],
+      [
+        "FEDERAL",
+        41
+      ],
+      [
+        "PLUXEE",
+        38
+      ],
+      [
+        "SLICE",
+        30
+      ],
+      [
+        "PNB",
+        29
+      ],
+      [
+        "IDFC",
+        29
+      ],
+      [
+        "SBI",
+        21
+      ],
+      [
+        "AXIS",
+        20
+      ],
+      [
+        "INDUSIND",
+        18
+      ],
+      [
+        "KOTAK",
+        16
+      ],
+      [
+        "BOB",
+        14
+      ],
+      [
+        "HSBC",
+        13
+      ],
+      [
+        "JUSPAY",
+        13
+      ],
+      [
+        "PHONEPE",
+        13
+      ],
+      [
+        "INDIANBANK",
+        12
+      ],
+      [
+        "SARASWAT",
+        10
+      ],
+      [
+        "BANDHAN",
+        9
+      ],
+      [
+        "EQUITAS",
+        9
+      ],
+      [
+        "IDBI",
+        9
+      ],
+      [
+        "CANARA",
+        9
+      ],
+      [
+        "AMEX",
+        8
+      ],
+      [
+        "CUB",
+        8
+      ],
+      [
+        "DHANLAXMI",
+        8
+      ],
+      [
+        "SIB",
+        8
+      ],
+      [
+        "YES",
+        8
+      ],
+      [
+        "UNION",
+        8
+      ],
+      [
+        "AU",
+        7
+      ],
+      [
+        "CRED",
+        7
+      ],
+      [
+        "PSB",
+        7
+      ],
+      [
+        "SBICARD",
+        6
+      ],
+      [
+        "SCB",
+        6
+      ],
+      [
+        "KARNATAKA",
+        6
+      ],
+      [
+        "UCO",
+        6
+      ],
+      [
+        "DOP",
+        5
+      ],
+      [
+        "BOI",
+        4
+      ],
+      [
+        "KERALAGRAMIN",
+        4
+      ],
+      [
+        "CASHFREE",
+        4
+      ],
+      [
+        "JIOPAY",
+        4
+      ],
+      [
+        "CENTRALBANK",
+        3
+      ],
+      [
+        "NAVIMF",
+        3
+      ],
+      [
+        "NSDL",
+        3
+      ],
+      [
+        "GREATER",
+        2
+      ],
+      [
+        "JANA",
+        2
+      ],
+      [
+        "TMB",
+        2
+      ],
+      [
+        "BOM",
+        2
+      ],
+      [
+        "IPPB",
+        2
+      ],
+      [
+        "HDFCMF",
+        1
+      ],
+      [
+        "JUPITER",
+        1
+      ],
+      [
+        "KERALABANK",
+        1
+      ],
+      [
+        "SVC",
+        1
+      ],
+      [
+        "SURYODAY",
+        1
+      ],
+      [
+        "AIRTELPB",
+        1
+      ],
+      [
+        "PAYTM",
+        1
+      ],
+      [
+        "IOB",
+        1
+      ]
+    ]
+  },
+  "held_out_banks": {
+    "spans": {
+      "AMOUNT": {
+        "precision": 0.9668874172185431,
+        "recall": 0.9733333333333334,
+        "f1": 0.9700996677740864,
+        "support": 450,
+        "anchored_recall": 0.9794344473007712,
+        "anchored_support": 389
+      },
+      "ACCOUNT": {
+        "precision": 0.9513513513513514,
+        "recall": 0.9312169312169312,
+        "f1": 0.9411764705882354,
+        "support": 378,
+        "anchored_recall": 0.9278350515463918,
+        "anchored_support": 291
+      },
+      "PAYEE": {
+        "precision": 0.9076923076923077,
+        "recall": 0.7108433734939759,
+        "f1": 0.7972972972972974,
+        "support": 249,
+        "anchored_recall": 0.7106382978723405,
+        "anchored_support": 235
+      },
+      "DATE": {
+        "precision": 0.9704142011834319,
+        "recall": 0.9618768328445748,
+        "f1": 0.9661266568483062,
+        "support": 341,
+        "anchored_recall": null,
+        "anchored_support": 0
+      },
+      "TIME": {
+        "precision": 0.8888888888888888,
+        "recall": 0.896551724137931,
+        "f1": 0.8927038626609441,
+        "support": 116,
+        "anchored_recall": null,
+        "anchored_support": 0
+      },
+      "BALANCE": {
+        "precision": 0.9540816326530612,
+        "recall": 0.9303482587064676,
+        "f1": 0.9420654911838792,
+        "support": 201,
+        "anchored_recall": 0.9133333333333333,
+        "anchored_support": 150
+      },
+      "AVAIL_LIMIT": {
+        "precision": 0.8947368421052632,
+        "recall": 0.918918918918919,
+        "f1": 0.9066666666666667,
+        "support": 37,
+        "anchored_recall": 0.8695652173913043,
+        "anchored_support": 23
+      },
+      "REF_NO": {
+        "precision": 0.8758169934640523,
+        "recall": 0.783625730994152,
+        "f1": 0.8271604938271604,
+        "support": 171,
+        "anchored_recall": 0.7786259541984732,
+        "anchored_support": 131
+      },
+      "ALL": {
+        "precision": 0.943010752688172,
+        "recall": 0.9027277406073083,
+        "f1": 0.9224296607941099,
+        "support": 1943,
+        "anchored_recall": 0.8835110746513536,
+        "anchored_support": 1219
+      }
+    },
+    "types": {
+      "accuracy": 0.773109243697479,
+      "macro_f1": 0.5014337512822131,
+      "txn_accuracy": 0.9117647058823529,
+      "non_txn_called_txn": 28,
+      "txn_called_non_txn": 14,
+      "n": 476
+    },
+    "folds": [
+      [
+        "ICICI"
+      ],
+      [
+        "NONBANK"
+      ],
+      [
+        "RBL",
+        "PNB",
+        "AXIS",
+        "INDUSIND",
+        "HSBC",
+        "CANARA",
+        "EQUITAS",
+        "YES",
+        "CUB",
+        "CRED",
+        "SBICARD",
+        "DOP",
+        "KERALAGRAMIN",
+        "CENTRALBANK",
+        "GREATER",
+        "IPPB",
+        "KERALABANK",
+        "IOB"
+      ],
+      [
+        "HDFC",
+        "SLICE",
+        "IDFC",
+        "BOB",
+        "PHONEPE",
+        "INDIANBANK",
+        "BANDHAN",
+        "UNION",
+        "DHANLAXMI",
+        "AU",
+        "SCB",
+        "JIOPAY",
+        "BOI",
+        "NSDL",
+        "JANA",
+        "TMB",
+        "HDFCMF",
+        "JUPITER",
+        "SVC"
+      ],
+      [
+        "FEDERAL",
+        "PLUXEE",
+        "SBI",
+        "KOTAK",
+        "JUSPAY",
+        "SARASWAT",
+        "IDBI",
+        "SIB",
+        "AMEX",
+        "PSB",
+        "UCO",
+        "KARNATAKA",
+        "CASHFREE",
+        "NAVIMF",
+        "BOM",
+        "AIRTELPB",
+        "PAYTM",
+        "SURYODAY"
+      ]
+    ]
+  },
+  "rule_baseline": {
+    "spans": {
+      "AMOUNT": {
+        "precision": 0.9865470852017937,
+        "recall": 0.9777777777777777,
+        "f1": 0.9821428571428572,
+        "support": 450,
+        "anchored_recall": 0.9768637532133676,
+        "anchored_support": 389
+      },
+      "ACCOUNT": {
+        "precision": 0.9864130434782609,
+        "recall": 0.9603174603174603,
+        "f1": 0.9731903485254692,
+        "support": 378,
+        "anchored_recall": 0.9484536082474226,
+        "anchored_support": 291
+      },
+      "PAYEE": {
+        "precision": 0.9466666666666667,
+        "recall": 0.285140562248996,
+        "f1": 0.43827160493827155,
+        "support": 249,
+        "anchored_recall": 0.2425531914893617,
+        "anchored_support": 235
+      },
+      "DATE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 341,
+        "anchored_recall": null,
+        "anchored_support": 0
+      },
+      "TIME": {
+        "precision": 0.9913793103448276,
+        "recall": 0.9913793103448276,
+        "f1": 0.9913793103448276,
+        "support": 116,
+        "anchored_recall": null,
+        "anchored_support": 0
+      },
+      "BALANCE": {
+        "precision": 0.979381443298969,
+        "recall": 0.945273631840796,
+        "f1": 0.9620253164556961,
+        "support": 201,
+        "anchored_recall": 0.9266666666666666,
+        "anchored_support": 150
+      },
+      "AVAIL_LIMIT": {
+        "precision": 1.0,
+        "recall": 0.972972972972973,
+        "f1": 0.9863013698630138,
+        "support": 37,
+        "anchored_recall": 0.9565217391304348,
+        "anchored_support": 23
+      },
+      "REF_NO": {
+        "precision": 1.0,
+        "recall": 0.8362573099415205,
+        "f1": 0.910828025477707,
+        "support": 171,
+        "anchored_recall": 0.7862595419847328,
+        "anchored_support": 131
+      },
+      "ALL": {
+        "precision": 0.9883653286794648,
+        "recall": 0.8744209984559959,
+        "f1": 0.9279082468596395,
+        "support": 1943,
+        "anchored_recall": 0.8014766201804758,
+        "anchored_support": 1219
+      }
+    }
+  },
+  "per_bank": {
+    "ICICI": {
+      "n": 39,
+      "amount_hit": 29,
+      "amount_all": 30,
+      "acct_hit": 21,
+      "acct_all": 21,
+      "type_ok": 30
+    },
+    "NONBANK": {
+      "n": 14,
+      "amount_hit": 5,
+      "amount_all": 5,
+      "acct_hit": 4,
+      "acct_all": 4,
+      "type_ok": 6
+    },
+    "PNB": {
+      "n": 29,
+      "amount_hit": 26,
+      "amount_all": 26,
+      "acct_hit": 21,
+      "acct_all": 21,
+      "type_ok": 23
+    },
+    "AXIS": {
+      "n": 18,
+      "amount_hit": 16,
+      "amount_all": 16,
+      "acct_hit": 10,
+      "acct_all": 10,
+      "type_ok": 17
+    },
+    "CUB": {
+      "n": 8,
+      "amount_hit": 5,
+      "amount_all": 6,
+      "acct_hit": 4,
+      "acct_all": 4,
+      "type_ok": 8
+    },
+    "CENTRALBANK": {
+      "n": 3,
+      "amount_hit": 3,
+      "amount_all": 3,
+      "acct_hit": 3,
+      "acct_all": 3,
+      "type_ok": 3
+    },
+    "EQUITAS": {
+      "n": 9,
+      "amount_hit": 7,
+      "amount_all": 7,
+      "acct_hit": 4,
+      "acct_all": 7,
+      "type_ok": 8
+    },
+    "HSBC": {
+      "n": 13,
+      "amount_hit": 13,
+      "amount_all": 13,
+      "acct_hit": 7,
+      "acct_all": 11,
+      "type_ok": 8
+    },
+    "INDUSIND": {
+      "n": 18,
+      "amount_hit": 15,
+      "amount_all": 15,
+      "acct_hit": 12,
+      "acct_all": 13,
+      "type_ok": 12
+    },
+    "KERALAGRAMIN": {
+      "n": 4,
+      "amount_hit": 4,
+      "amount_all": 4,
+      "acct_hit": 4,
+      "acct_all": 4,
+      "type_ok": 4
+    },
+    "SBICARD": {
+      "n": 6,
+      "amount_hit": 3,
+      "amount_all": 3,
+      "acct_hit": 3,
+      "acct_all": 3,
+      "type_ok": 3
+    },
+    "YES": {
+      "n": 8,
+      "amount_hit": 4,
+      "amount_all": 4,
+      "acct_hit": 4,
+      "acct_all": 4,
+      "type_ok": 6
+    },
+    "CANARA": {
+      "n": 9,
+      "amount_hit": 7,
+      "amount_all": 7,
+      "acct_hit": 7,
+      "acct_all": 7,
+      "type_ok": 8
+    },
+    "CRED": {
+      "n": 7,
+      "amount_hit": 5,
+      "amount_all": 5,
+      "acct_hit": 0,
+      "acct_all": 0,
+      "type_ok": 1
+    },
+    "DOP": {
+      "n": 4,
+      "amount_hit": 4,
+      "amount_all": 4,
+      "acct_hit": 4,
+      "acct_all": 4,
+      "type_ok": 4
+    },
+    "GREATER": {
+      "n": 2,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 2,
+      "acct_all": 2,
+      "type_ok": 1
+    },
+    "KERALABANK": {
+      "n": 1,
+      "amount_hit": 0,
+      "amount_all": 1,
+      "acct_hit": 1,
+      "acct_all": 1,
+      "type_ok": 1
+    },
+    "RBL": {
+      "n": 3,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 1,
+      "acct_all": 2,
+      "type_ok": 2
+    },
+    "IOB": {
+      "n": 1,
+      "amount_hit": 1,
+      "amount_all": 1,
+      "acct_hit": 1,
+      "acct_all": 1,
+      "type_ok": 1
+    },
+    "IPPB": {
+      "n": 2,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 2,
+      "acct_all": 2,
+      "type_ok": 2
+    },
+    "IDFC": {
+      "n": 9,
+      "amount_hit": 6,
+      "amount_all": 6,
+      "acct_hit": 6,
+      "acct_all": 6,
+      "type_ok": 8
+    },
+    "HDFC": {
+      "n": 19,
+      "amount_hit": 16,
+      "amount_all": 16,
+      "acct_hit": 9,
+      "acct_all": 10,
+      "type_ok": 14
+    },
+    "BOB": {
+      "n": 14,
+      "amount_hit": 12,
+      "amount_all": 13,
+      "acct_hit": 10,
+      "acct_all": 12,
+      "type_ok": 12
+    },
+    "SLICE": {
+      "n": 30,
+      "amount_hit": 19,
+      "amount_all": 19,
+      "acct_hit": 7,
+      "acct_all": 7,
+      "type_ok": 24
+    },
+    "AU": {
+      "n": 7,
+      "amount_hit": 7,
+      "amount_all": 7,
+      "acct_hit": 7,
+      "acct_all": 7,
+      "type_ok": 6
+    },
+    "BANDHAN": {
+      "n": 9,
+      "amount_hit": 7,
+      "amount_all": 7,
+      "acct_hit": 7,
+      "acct_all": 7,
+      "type_ok": 8
+    },
+    "BOI": {
+      "n": 4,
+      "amount_hit": 4,
+      "amount_all": 4,
+      "acct_hit": 3,
+      "acct_all": 4,
+      "type_ok": 4
+    },
+    "DHANLAXMI": {
+      "n": 8,
+      "amount_hit": 5,
+      "amount_all": 5,
+      "acct_hit": 5,
+      "acct_all": 5,
+      "type_ok": 7
+    },
+    "HDFCMF": {
+      "n": 1,
+      "amount_hit": 1,
+      "amount_all": 1,
+      "acct_hit": 0,
+      "acct_all": 0,
+      "type_ok": 1
+    },
+    "INDIANBANK": {
+      "n": 12,
+      "amount_hit": 12,
+      "amount_all": 12,
+      "acct_hit": 11,
+      "acct_all": 11,
+      "type_ok": 12
+    },
+    "SCB": {
+      "n": 6,
+      "amount_hit": 6,
+      "amount_all": 6,
+      "acct_hit": 3,
+      "acct_all": 6,
+      "type_ok": 6
+    },
+    "JANA": {
+      "n": 2,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 2,
+      "acct_all": 2,
+      "type_ok": 2
+    },
+    "JIOPAY": {
+      "n": 4,
+      "amount_hit": 1,
+      "amount_all": 4,
+      "acct_hit": 0,
+      "acct_all": 0,
+      "type_ok": 0
+    },
+    "JUPITER": {
+      "n": 1,
+      "amount_hit": 1,
+      "amount_all": 1,
+      "acct_hit": 1,
+      "acct_all": 1,
+      "type_ok": 1
+    },
+    "NSDL": {
+      "n": 3,
+      "amount_hit": 3,
+      "amount_all": 3,
+      "acct_hit": 3,
+      "acct_all": 3,
+      "type_ok": 3
+    },
+    "PHONEPE": {
+      "n": 3,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 0,
+      "acct_all": 0,
+      "type_ok": 0
+    },
+    "SVC": {
+      "n": 1,
+      "amount_hit": 1,
+      "amount_all": 1,
+      "acct_hit": 1,
+      "acct_all": 1,
+      "type_ok": 1
+    },
+    "TMB": {
+      "n": 2,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 1,
+      "acct_all": 1,
+      "type_ok": 0
+    },
+    "UNION": {
+      "n": 8,
+      "amount_hit": 5,
+      "amount_all": 5,
+      "acct_hit": 5,
+      "acct_all": 5,
+      "type_ok": 7
+    },
+    "PLUXEE": {
+      "n": 1,
+      "amount_hit": 1,
+      "amount_all": 1,
+      "acct_hit": 1,
+      "acct_all": 1,
+      "type_ok": 1
+    },
+    "AMEX": {
+      "n": 2,
+      "amount_hit": 1,
+      "amount_all": 1,
+      "acct_hit": 1,
+      "acct_all": 1,
+      "type_ok": 2
+    },
+    "KOTAK": {
+      "n": 16,
+      "amount_hit": 15,
+      "amount_all": 15,
+      "acct_hit": 14,
+      "acct_all": 15,
+      "type_ok": 15
+    },
+    "SBI": {
+      "n": 8,
+      "amount_hit": 7,
+      "amount_all": 7,
+      "acct_hit": 2,
+      "acct_all": 3,
+      "type_ok": 4
+    },
+    "FEDERAL": {
+      "n": 41,
+      "amount_hit": 32,
+      "amount_all": 32,
+      "acct_hit": 17,
+      "acct_all": 18,
+      "type_ok": 28
+    },
+    "IDBI": {
+      "n": 8,
+      "amount_hit": 6,
+      "amount_all": 6,
+      "acct_hit": 5,
+      "acct_all": 5,
+      "type_ok": 8
+    },
+    "JUSPAY": {
+      "n": 13,
+      "amount_hit": 13,
+      "amount_all": 13,
+      "acct_hit": 0,
+      "acct_all": 0,
+      "type_ok": 6
+    },
+    "NAVIMF": {
+      "n": 3,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 0,
+      "acct_all": 0,
+      "type_ok": 1
+    },
+    "SARASWAT": {
+      "n": 10,
+      "amount_hit": 10,
+      "amount_all": 10,
+      "acct_hit": 10,
+      "acct_all": 10,
+      "type_ok": 8
+    },
+    "SIB": {
+      "n": 7,
+      "amount_hit": 7,
+      "amount_all": 7,
+      "acct_hit": 7,
+      "acct_all": 7,
+      "type_ok": 7
+    },
+    "CASHFREE": {
+      "n": 4,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 0,
+      "acct_all": 0,
+      "type_ok": 2
+    },
+    "KARNATAKA": {
+      "n": 6,
+      "amount_hit": 5,
+      "amount_all": 5,
+      "acct_hit": 4,
+      "acct_all": 4,
+      "type_ok": 6
+    },
+    "PSB": {
+      "n": 7,
+      "amount_hit": 7,
+      "amount_all": 7,
+      "acct_hit": 6,
+      "acct_all": 6,
+      "type_ok": 7
+    },
+    "SURYODAY": {
+      "n": 1,
+      "amount_hit": 1,
+      "amount_all": 1,
+      "acct_hit": 0,
+      "acct_all": 1,
+      "type_ok": 1
+    },
+    "UCO": {
+      "n": 6,
+      "amount_hit": 5,
+      "amount_all": 6,
+      "acct_hit": 6,
+      "acct_all": 6,
+      "type_ok": 6
+    },
+    "BOM": {
+      "n": 2,
+      "amount_hit": 2,
+      "amount_all": 2,
+      "acct_hit": 1,
+      "acct_all": 2,
+      "type_ok": 2
+    }
+  },
+  "random_split": {
+    "spans": {
+      "AMOUNT": {
+        "precision": 0.9405940594059405,
+        "recall": 0.9895833333333334,
+        "f1": 0.964467005076142,
+        "support": 96,
+        "anchored_recall": 0.9882352941176471,
+        "anchored_support": 85
+      },
+      "ACCOUNT": {
+        "precision": 0.9135802469135802,
+        "recall": 0.961038961038961,
+        "f1": 0.9367088607594937,
+        "support": 77,
+        "anchored_recall": 0.9523809523809523,
+        "anchored_support": 63
+      },
+      "PAYEE": {
+        "precision": 0.9464285714285714,
+        "recall": 0.9137931034482759,
+        "f1": 0.9298245614035087,
+        "support": 58,
+        "anchored_recall": 0.9272727272727272,
+        "anchored_support": 55
+      },
+      "DATE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 77,
+        "anchored_recall": null,
+        "anchored_support": 0
+      },
+      "TIME": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 27,
+        "anchored_recall": null,
+        "anchored_support": 0
+      },
+      "BALANCE": {
+        "precision": 0.9736842105263158,
+        "recall": 1.0,
+        "f1": 0.9866666666666666,
+        "support": 37,
+        "anchored_recall": 1.0,
+        "anchored_support": 31
+      },
+      "AVAIL_LIMIT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 9,
+        "anchored_recall": 1.0,
+        "anchored_support": 6
+      },
+      "REF_NO": {
+        "precision": 0.8333333333333334,
+        "recall": 0.8108108108108109,
+        "f1": 0.8219178082191781,
+        "support": 37,
+        "anchored_recall": 0.7941176470588235,
+        "anchored_support": 34
+      },
+      "ALL": {
+        "precision": 0.9458823529411765,
+        "recall": 0.9617224880382775,
+        "f1": 0.9537366548042705,
+        "support": 418,
+        "anchored_recall": 0.9452554744525548,
+        "anchored_support": 274
+      }
+    },
+    "types": {
+      "accuracy": 0.8076923076923077,
+      "macro_f1": 0.45615291571173927,
+      "txn_accuracy": 0.9230769230769231,
+      "non_txn_called_txn": 6,
+      "txn_called_non_txn": 2,
+      "n": 104
+    }
+  }
+}

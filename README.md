@@ -224,8 +224,8 @@ REJECTED`, and all of them are counted.
 
 ### No network, and the build proves it
 
-The app holds two permissions: `RECEIVE_SMS` and `POST_NOTIFICATIONS`. It does **not**
-hold `INTERNET`, and that is enforced rather than promised:
+The app holds three permissions: `RECEIVE_SMS`, `READ_SMS` and `POST_NOTIFICATIONS`. It
+does **not** hold `INTERNET`, and that is enforced rather than promised:
 
 ```kotlin
 // app/build.gradle.kts — fails the build if the merged manifest grants INTERNET
@@ -246,9 +246,15 @@ comment.
 "Your bank messages cannot leave this phone" is checkable by anyone with `aapt`. That is
 a very different claim from one you have to take on trust.
 
-Note also that it asks for `RECEIVE_SMS` only, **not** `READ_SMS`: there is no inbox
-backfill, so the app can see messages that arrive from now on and has no access to the
-ones already on your phone.
+`READ_SMS` exists for one job: catching up after power saving. Several phones' power-saving
+modes stop delivering incoming SMS to apps, so a bank alert reaches the inbox but never
+reaches this app. When you open the app, when power saving is switched off, and when the
+widget redraws, the app reads inbox messages newer than its last scan and puts them
+through the same parser and duplicate checks as a live message. The first scan goes back
+no further than your newest recorded bank transaction, and never more than 30 days. It
+reads only the inbox, never sent messages or drafts. Without `INTERNET`, nothing it reads
+can leave the phone. Deny `READ_SMS` and the app works exactly as before, live messages
+only.
 
 ---
 

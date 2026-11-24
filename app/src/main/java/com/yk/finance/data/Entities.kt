@@ -388,3 +388,27 @@ data class IgnoredAccount(
     val displayName: String,
     val ignoredAt: Long,
 )
+
+/**
+ * One SMS the app has already handed to the ingestor, from either path.
+ *
+ * A message can reach the app twice: live, as the SMS_RECEIVED broadcast, and later from
+ * the inbox when a catch-up scan runs after a power-saving mode swallowed broadcasts. The
+ * ledger's own duplicate check only works for messages that carry a reference number, so
+ * this table is what guarantees the second sighting is a no-op for every message.
+ *
+ * [bodyKey] is a hash of the sender and the text; [sentAt] is the sender-side timestamp in
+ * whole seconds, the same value the radio delivers live and the inbox stores as date_sent.
+ * Together they separate two genuinely identical alerts sent at different times. A 0 for
+ * [sentAt] means the inbox did not record one, and then the text alone has to decide.
+ */
+@Entity(
+    tableName = "seen_messages",
+    primaryKeys = ["bodyKey", "sentAt"],
+    indices = [Index("receivedAt")],
+)
+data class SeenMessage(
+    val bodyKey: String,
+    val sentAt: Long,
+    val receivedAt: Long,
+)

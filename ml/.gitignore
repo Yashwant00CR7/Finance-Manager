@@ -1,0 +1,6 @@
+.venv/
+work/
+__pycache__/
+*.crfsuite
+models/
+data/synthetic.jsonl

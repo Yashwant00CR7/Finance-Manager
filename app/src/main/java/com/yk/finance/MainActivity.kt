@@ -66,6 +66,15 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * Every return to the app is a chance to pick up messages a power-saving mode kept
+     * from the receiver. Cheap when there is nothing new: one indexed inbox query.
+     */
+    override fun onStart() {
+        super.onStart()
+        (application as FinanceApplication).requestCatchUp()
+    }
+
+    /**
      * The widget reads the ledger directly, so it only needs telling that something
      * changed. Leaving is the moment everything the session did has landed.
      */

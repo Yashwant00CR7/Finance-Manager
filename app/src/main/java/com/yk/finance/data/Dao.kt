@@ -83,6 +83,37 @@ interface FinanceDao {
     @Query("DELETE FROM ignored_accounts WHERE bank = :bank AND accountToken = :token")
     suspend fun unignoreAccount(bank: String, token: String)
 
+    // ----- messages already processed (catch-up dedupe) -----
+    /** -1 when this message was already seen, which is how a second sighting is detected. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun markSeen(message: SeenMessage): Long
+
+    /** Releases a claim whose ingest failed, so the next scan can try the message again. */
+    @Query("DELETE FROM seen_messages WHERE bodyKey = :bodyKey AND sentAt = :sentAt")
+    suspend fun unmarkSeen(bodyKey: String, sentAt: Long)
+
+    /** Forgets sightings older than any scan window can reach back to. */
+    @Query("DELETE FROM seen_messages WHERE receivedAt < :before")
+    suspend fun pruneSeen(before: Long)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM seen_messages WHERE bodyKey = :bodyKey AND receivedAt >= :from AND receivedAt <= :to)")
+    suspend fun hasSeenBodyNear(bodyKey: String, from: Long, to: Long): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM seen_messages WHERE bodyKey = :bodyKey)")
+    suspend fun hasSeenBody(bodyKey: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE rawMessage = :body)")
+    suspend fun txnHasRawMessage(body: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM pending_reviews WHERE rawMessage = :body)")
+    suspend fun reviewHasRawMessage(body: String): Boolean
+
+    @Query("SELECT MAX(occurredAt) FROM transactions WHERE source = 'SMS'")
+    suspend fun latestSmsTxnAt(): Long?
+
+    @Query("SELECT MAX(receivedAt) FROM pending_reviews")
+    suspend fun latestReviewAt(): Long?
+
     // ----- transactions -----
     @Insert
     suspend fun insertTxn(txn: Txn): Long

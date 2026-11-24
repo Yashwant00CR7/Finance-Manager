@@ -41,6 +41,7 @@ fun SettingsSection(vm: FinanceViewModel, state: UiState) {
     val cycles by vm.salaryCycles.collectAsState()
     val money = LocalMoneyColors.current
     val smsGranted = rememberSmsPermissionGranted()
+    val inboxGranted = rememberInboxReadGranted()
     val autoFile by vm.autoFile.collectAsState()
     val guessStats by vm.guessStats.collectAsState()
     val guessCount by vm.guessCount.collectAsState()
@@ -48,7 +49,7 @@ fun SettingsSection(vm: FinanceViewModel, state: UiState) {
     val ignored by vm.ignoredAccounts.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (!smsGranted) MissingSmsPermissionCard()
+        if (!smsGranted) MissingSmsPermissionCard() else if (!inboxGranted) MissingInboxReadCard()
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {

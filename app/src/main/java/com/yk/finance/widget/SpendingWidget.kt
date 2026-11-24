@@ -11,9 +11,6 @@ import android.widget.RemoteViews
 import com.yk.finance.FinanceApplication
 import com.yk.finance.MainActivity
 import com.yk.finance.R
-import com.yk.finance.domain.BudgetResolver
-import com.yk.finance.domain.CycleCalculator
-import com.yk.finance.domain.Ledger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,7 +31,7 @@ object WidgetRoute {
  * showing a payment you made two minutes ago as not-yet-recorded is the fastest way to
  * stop believing it, and a 30-minute poll guarantees that happens several times a day.
  *
- * There are only three such places, and between them they are exhaustive:
+ * There are three such places:
  *
  *  - SmsReceiver, for everything that lands while the app is closed.
  *  - MainActivity.onStop, for everything you did inside it. This is why no mutation in
@@ -43,6 +40,9 @@ object WidgetRoute {
  *    by then. Plumbing a Context into the ViewModel to beat a redraw nobody can see
  *    would be indirection bought with nothing.
  *  - The date rolling over, which is the one figure that moves with no action at all.
+ *
+ * A fourth, since power-saving modes can block the first: an inbox catch-up that filed
+ * anything redraws the widget when it finishes.
  */
 object WidgetRefresh {
 
@@ -97,6 +97,10 @@ class SpendingWidget : AppWidgetProvider() {
     private fun render(context: Context, manager: AppWidgetManager, ids: IntArray) {
         if (ids.isEmpty()) return
         val app = context.applicationContext as? FinanceApplication ?: return
+        // A power-saving mode that kept bank messages from the app kept them from the
+        // widget too. Any redraw is a chance to recover them: the scan redraws the widget
+        // again if it filed anything, and finds nothing new the second time, so it settles.
+        app.requestCatchUp()
         val pending = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -112,38 +116,9 @@ class SpendingWidget : AppWidgetProvider() {
         }
     }
 
-    /**
-     * Reads the cycle window, then the three figures that fill it.
-     *
-     * The budget looked up is the one effective for the month this cycle is *labelled*
-     * with, not the month its start date falls in - a cycle opening on 31 Aug is
-     * September's, and September's cap is the one you set while looking at it.
-     */
-    private suspend fun snapshot(app: FinanceApplication): WidgetState.Snapshot {
-        val now = System.currentTimeMillis()
-        val cycleStart = app.dao.cycleState()?.cycleStartMillis
-            ?: CycleCalculator.seed(now).cycleStartMillis
-
-        val spent = Ledger.totals(app.dao.spendingBetween(cycleStart, now)).expensePaise
-        val income = app.dao.incomeBetween(cycleStart, now)
-            .filter(Ledger::isIncome)
-            .sumOf { it.amountPaise }
-
-        // Resolved against the cycle start itself, which is what the Budgets screen and the
-        // alerts use. The resolver already accepts a row pinned to either the cycle start
-        // or the month it is labelled with; passing it the month start instead made a
-        // "this cycle only" cap written moments ago invisible here until the next launch
-        // re-pinned it, so the widget and the app disagreed about the ceiling.
-        val budget = BudgetResolver
-            .effective(app.dao.allBudgets(), cycleStart)
-            .firstOrNull { it.budget.categoryId == null }
-            ?.budget
-            ?.limitPaise
-
-        val totalBalance = app.dao.allAccounts().sumOf { it.currentBalancePaise }
-
-        return WidgetState.of(cycleStart, now, spent, budget, income, totalBalance)
-    }
+    /** Same figures as the app's Budgets screen. See [WidgetFigures]. */
+    private suspend fun snapshot(app: FinanceApplication): WidgetState.Snapshot =
+        WidgetFigures.read(app.dao, System.currentTimeMillis())
 
     private fun build(context: Context, state: WidgetState.Snapshot): RemoteViews =
         RemoteViews(context.packageName, R.layout.widget_spending).apply {

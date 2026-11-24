@@ -1,0 +1,4461 @@
+[
+  {
+    "bank": "BOB",
+    "text": "Rs.1000.00 Cr. to ankit.sharma@okaxis A/c XX409020 on 16-11-2024. AvlBal:Rs10000.00. Ref:5050072297 -Bank of Baroda",
+    "gold_type": "CREDIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "ankit.sharma@okaxis",
+        "PAYEE"
+      ],
+      [
+        "10000.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "1000.00",
+        "AMOUNT"
+      ],
+      [
+        "XX409020",
+        "ACCOUNT"
+      ],
+      [
+        "16-11-2024",
+        "DATE"
+      ],
+      [
+        "10000.00",
+        "AMOUNT"
+      ],
+      [
+        "5050072297",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Your available balance for a/c no(s) SBA7435 is INR 15000.50,SBA5678 is INR 8500.25 .For detailed statement download FedMobile https://fedmobile.federalbank.co.in/eMpZQSG5-mHydYUkYV/ - Federal Bank",
+    "gold_type": "BALANCE_INFO",
+    "pred_type": "PROMO",
+    "missed": [
+      [
+        "7435",
+        "ACCOUNT"
+      ],
+      [
+        "15000.50",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "SBA7435",
+        "ACCOUNT"
+      ],
+      [
+        "15000.50",
+        "AMOUNT"
+      ],
+      [
+        "8500.25",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "A/C *XX9181 credited by Rs 300.00 from rahul.v@upiid. RRN:052496264068. Avl Bal:00.00. Not you? Call 58209361772 - IndusInd bank",
+    "gold_type": "CREDIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "rahul.v@upiid",
+        "PAYEE"
+      ],
+      [
+        "00.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "*XX9181",
+        "ACCOUNT"
+      ],
+      [
+        "300.00",
+        "AMOUNT"
+      ],
+      [
+        "052496264068",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "JIOPAY",
+    "text": "Recharge Successful for Jio Number : 7363792830. Rs. 249.00 paid. Transaction ID : BR179CAUBYON",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "249.00",
+        "AMOUNT"
+      ],
+      [
+        "BR179CAUBYON",
+        "REF_NO"
+      ]
+    ],
+    "pred": []
+  },
+  {
+    "bank": "JIOPAY",
+    "text": "Payment successful to NETFLIX. Rs. 500.00 paid. Transaction ID : BR177CAUBYON",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "500.00",
+        "AMOUNT"
+      ],
+      [
+        "BR177CAUBYON",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "NETFLIX",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "PNB",
+    "text": "A/c XX9271 debited with Rs.5000.00,21-11-2025 13:23:22 thru Reliance Retail  . Out of 5 free txn on PNB ATM, you utilized 1 txn. Chrgs applicable as per policy. Bal 27000.00 CR. If not done, fwd SMS to 2445184875 to block card/call 54214685/81012384-PNB",
+    "gold_type": "ATM_WITHDRAWAL",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "Reliance Retail",
+        "PAYEE"
+      ],
+      [
+        "27000.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "XX9271",
+        "ACCOUNT"
+      ],
+      [
+        "5000.00",
+        "AMOUNT"
+      ],
+      [
+        "21-11-2025",
+        "DATE"
+      ],
+      [
+        "13:23:22",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "CRED",
+    "text": "Payment of Rs.50000 has been successfully credited towards your Kfc. Your payment was settled in 3 seconds - CRED",
+    "gold_type": "CARD_PAYMENT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Kfc",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "50000",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "CRED",
+    "text": "Payment of Rs.1234.56 has been successfully credited towards your Isha Malhotra. Your payment was settled in 3 seconds - CRED",
+    "gold_type": "CARD_PAYMENT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Isha Malhotra",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1234.56",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "CRED",
+    "text": "Payment of Rs.50,000 has been successfully credited towards your Airtel. Your payment was settled in 3 seconds - CRED",
+    "gold_type": "CARD_PAYMENT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Airtel",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "50,000",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "CRED",
+    "text": "Payment of Rs.10000 has been successfully credited towards your Meera Patel.",
+    "gold_type": "CARD_PAYMENT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Meera Patel",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "10000",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "CRED",
+    "text": "Payment of Rs.5000 has been successfully credited towards your Divya Rao.",
+    "gold_type": "CARD_PAYMENT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Divya Rao",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "5000",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Shell Petrol has received Rs 1000.00 from your A/c 7432 via NEFT on 02-Jan-2026 06:50:32. Ref no. FBBT338363395238 - Federal Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Shell Petrol",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1000.00",
+        "AMOUNT"
+      ],
+      [
+        "7432",
+        "ACCOUNT"
+      ],
+      [
+        "02-Jan-2026",
+        "DATE"
+      ],
+      [
+        "06:50:32",
+        "TIME"
+      ],
+      [
+        "FBBT338363395238",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Rs 96256.52 spent@Amazon Pay  on 14AUG24 13:49.BAL:Rs 8667.36.Dispute/Not you?Click https://fbl.ai/2/6n /call 16326078153/SMS NO 2172 to 0893898127-Federal Bank",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "PROMO",
+    "missed": [
+      [
+        "Amazon Pay",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "96256.52",
+        "AMOUNT"
+      ],
+      [
+        "@Amazon Pay",
+        "PAYEE"
+      ],
+      [
+        "14AUG24",
+        "DATE"
+      ],
+      [
+        "13:49",
+        "TIME"
+      ],
+      [
+        "8667.36",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "GREATER",
+    "text": "Your Account XXXX5000 had a Divya Rao of RS. 100.00 on 19/04/2026 at 23:21:35.Available balance is Rs. 1127.55: GREATER BANK",
+    "gold_type": "DEBIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Divya Rao",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXX5000",
+        "ACCOUNT"
+      ],
+      [
+        "100.00",
+        "AMOUNT"
+      ],
+      [
+        "19/04/2026",
+        "DATE"
+      ],
+      [
+        "23:21:35",
+        "TIME"
+      ],
+      [
+        "1127.55",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "HSBC",
+    "text": "Your HSBC creditcard xxxxx4622 used at BOOKMYSHOW for INR 305.00 on 15-04-25.",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "xxxxx4622",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "BOOKMYSHOW",
+        "PAYEE"
+      ],
+      [
+        "305.00",
+        "AMOUNT"
+      ],
+      [
+        "15-04-25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "HSBC",
+    "text": "HSBC: Thank you for using HSBC Debit Card XXXXX45xx for INR 305.00 on 15-Dec-25 at BIGBASKET .",
+    "gold_type": "DEBIT",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "XXXXX45xx",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXXX45",
+        "ACCOUNT"
+      ],
+      [
+        "305.00",
+        "AMOUNT"
+      ],
+      [
+        "15-Dec-25",
+        "DATE"
+      ],
+      [
+        "BIGBASKET",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "Dear Customer, INR 1,222.65 is debited on ICICI Bank Credit Card XX4578 on 17-Jan-22. Info: Swiggy. Available Limit: INR 2,43,622.73. Call on 4608357591 for dispute or SMS BLOCK 0000 to 7684864070",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "Swiggy",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1,222.65",
+        "AMOUNT"
+      ],
+      [
+        "XX4578",
+        "ACCOUNT"
+      ],
+      [
+        "17-Jan-22",
+        "DATE"
+      ],
+      [
+        "2,43,622.73",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "A/C *XX6946 credited by Rs 25000.00 from pooja.g@ybl. RRN:090933999625. Avl Bal:105502.12. Not you? Call 35004451004 - IndusInd bank.",
+    "gold_type": "CREDIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "pooja.g@ybl",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "*XX6946",
+        "ACCOUNT"
+      ],
+      [
+        "25000.00",
+        "AMOUNT"
+      ],
+      [
+        "090933999625",
+        "REF_NO"
+      ],
+      [
+        "105502.12",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "A/C *XX0698 credited by Rs 890.00 from priya92@upiid. RRN:478774039960. Avl Bal:00.00. Not you? Call 29514630644 - IndusInd bank",
+    "gold_type": "CREDIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "00.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "*XX0698",
+        "ACCOUNT"
+      ],
+      [
+        "890.00",
+        "AMOUNT"
+      ],
+      [
+        "priya92@upiid",
+        "PAYEE"
+      ],
+      [
+        "478774039960",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "JIOPAY",
+    "text": "Bill Payment of Rs. 1,234.56 for Arjun Reddy successful. Rs. 1,234.56 paid. Transaction ID : BR677CAUBYON",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "BR677CAUBYON",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "1,234.56",
+        "AMOUNT"
+      ],
+      [
+        "Arjun Reddy",
+        "PAYEE"
+      ],
+      [
+        "1,234.56",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "JIOPAY",
+    "text": "Recharge Successful for Jio Number : 8767954573. Rs. 249.00 paid",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "249.00",
+        "AMOUNT"
+      ]
+    ],
+    "pred": []
+  },
+  {
+    "bank": "JUSPAY",
+    "text": "Payment of Rs 150.50 using Apay Balance successful at netflix. Updated Balance is Rs 850.00 - SMS by Juspay",
+    "gold_type": "DEBIT",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "netflix",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "150.50",
+        "AMOUNT"
+      ],
+      [
+        "850.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "JUSPAY",
+    "text": "Payment of Rs 500 using Apay Balance successful at airtel. Updated Balance is Rs 1500 - SMS by Juspay",
+    "gold_type": "DEBIT",
+    "pred_type": "PROMO",
+    "missed": [
+      [
+        "airtel",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "500",
+        "AMOUNT"
+      ],
+      [
+        "1500",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "NAVIMF",
+    "text": "Unit Allotment Update:\nYour SIP purchase of Rs.499.98 in Uber India has been processed at applicable NAV. The units will be alloted in 1-2 working days. For further queries, please visit the Navi app.\nTeam Navi Mutual Fund",
+    "gold_type": "DEBIT",
+    "pred_type": "INFO",
+    "missed": [
+      [
+        "Uber India",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "499.98",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "NAVIMF",
+    "text": "Unit Allotment Update:\nYour SIP purchase of Rs. 1,49,999.98 in Harish N has been processed at applicable NAV. The units will be alloted in 1-2 working days.\nTeam Navi Mutual Fund",
+    "gold_type": "DEBIT",
+    "pred_type": "REFUND",
+    "missed": [
+      [
+        "Harish N",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1,49,999.98",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "PHONEPE",
+    "text": "You've paid Rs.14.36 via PhonePe wallet for AMAZON PAY. Not you? Call us on 022-27234222. Remaining balance: Rs.0. To top-up click https://phone.pe/Dy5vEz/Zq",
+    "gold_type": "DEBIT",
+    "pred_type": "PROMO",
+    "missed": [
+      [
+        "AMAZON PAY",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "14.36",
+        "AMOUNT"
+      ],
+      [
+        "022-27234222",
+        "DATE"
+      ],
+      [
+        "0",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "PHONEPE",
+    "text": "You've paid Rs.120.00 via PhonePe wallet for SANJAY MEHTA. Not you? Call us on 022-92149359. Remaining balance: Rs.30.00. To top-up click https://phone.pe/NPGU48/4j",
+    "gold_type": "REFUND",
+    "pred_type": "PROMO",
+    "missed": [
+      [
+        "SANJAY MEHTA",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "120.00",
+        "AMOUNT"
+      ],
+      [
+        "022-92149359",
+        "DATE"
+      ],
+      [
+        "30.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "PNB",
+    "text": "PNB Credit Card 9553 debited with Rs.270 [CODE:VG9918] at ankit.sharma@mbk on 04-10-2026 20:44 through UPI: 447983420989 Avl limit Rs. 48882.5. -PNB",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "ankit.sharma@mbk",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "9553",
+        "ACCOUNT"
+      ],
+      [
+        "270",
+        "AMOUNT"
+      ],
+      [
+        "04-10-2026",
+        "DATE"
+      ],
+      [
+        "20:44",
+        "TIME"
+      ],
+      [
+        "447983420989",
+        "REF_NO"
+      ],
+      [
+        "48882.5",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "SBI",
+    "text": "Rs.90.00 𝗌𝗉𝖾𝗇𝗍 𝗈𝗇 𝗒𝗈𝗎𝗋 𝖲𝖡𝖨 𝖢𝗋𝖾𝖽𝗂𝗍 𝖢𝖺𝗋𝖽 𝖾𝗇𝖽𝗂𝗇𝗀 8209 at OLA CABS on 13/02/26. 𝖳𝗋𝗑𝗇. 𝗇𝗈𝗍 𝖽𝗈𝗇𝖾 𝖻𝗒 𝗒𝗈𝗎? 𝖱𝖾𝗉𝗈𝗋𝗍 𝖺𝗍 https://sbicard.com/WsigTMH",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "PROMO",
+    "missed": [
+      [
+        "8209",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "90.00",
+        "AMOUNT"
+      ],
+      [
+        "OLA CABS",
+        "PAYEE"
+      ],
+      [
+        "13/02/26",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "SBI",
+    "text": "Transaction of Rs. 5163.00 for RBL Bank Credit C... with reference no. SB133513C54F68B3MFE1 is Successful-SBI",
+    "gold_type": "DEBIT",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "SB133513C54F68B3MFE1",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "5163.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SBICARD",
+    "text": "Your payment of Rs.1,644.55 has been credited to your SBI Credit Card ending with 8729. Your available limit is Rs.48,355.45.",
+    "gold_type": "CARD_PAYMENT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "48,355.45",
+        "AVAIL_LIMIT"
+      ]
+    ],
+    "pred": [
+      [
+        "1,644.55",
+        "AMOUNT"
+      ],
+      [
+        "8729",
+        "ACCOUNT"
+      ],
+      [
+        "48,355.45",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "SCB",
+    "text": "Dear Customer, there is an Priya Nair of INR 100,000.00 in your account 443xxxx2118 on 15/12/2025.Available Balance:INR 250,000.00 -StanChart",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Priya Nair",
+        "PAYEE"
+      ],
+      [
+        "443xxxx2118",
+        "ACCOUNT"
+      ],
+      [
+        "250,000.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "100,000.00",
+        "AMOUNT"
+      ],
+      [
+        "xxxx2118",
+        "ACCOUNT"
+      ],
+      [
+        "15/12/2025",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "TMB",
+    "text": "Your A/c No.XXXX2946 is debited with Rs.487.21 on 09-10-2026 06:19 PM and UTIB A/c linked to gpay-112233@axl is credited (UPI Ref No.364463152181).Current AVBL bal is Rs.1234.73 - TMB",
+    "gold_type": "DEBIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "gpay-112233@axl",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXX2946",
+        "ACCOUNT"
+      ],
+      [
+        "487.21",
+        "AMOUNT"
+      ],
+      [
+        "09-10-2026",
+        "DATE"
+      ],
+      [
+        "06:19 PM",
+        "TIME"
+      ],
+      [
+        "364463152181",
+        "REF_NO"
+      ],
+      [
+        "1234.73",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Payment of Rs 1317.80 received for your BOBCARD ending 0216 on 2026-06-17. Visit bobcard app: bobcard.io/App or online card account at https://www.bobcard.co.in/ for details.",
+    "gold_type": "PROMO",
+    "pred_type": "CARD_SPEND",
+    "missed": [],
+    "pred": [
+      [
+        "1317.80",
+        "AMOUNT"
+      ],
+      [
+        "0216",
+        "ACCOUNT"
+      ],
+      [
+        "2026-06-17",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "CASHFREE",
+    "text": "Payment INR 50.00 (ID:9014931899) confirmed for order #735571_428_1777162938185 on Irctc.\nPowered by Cashfree",
+    "gold_type": "DEBIT",
+    "pred_type": "INFO",
+    "missed": [],
+    "pred": [
+      [
+        "50.00",
+        "AMOUNT"
+      ],
+      [
+        "9014931899",
+        "REF_NO"
+      ],
+      [
+        "Irctc",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "CASHFREE",
+    "text": "Payment INR 299.00 (ID:9715082466) confirmed for order #order_001 on Suresh Kumar.\nPowered by Cashfree",
+    "gold_type": "DEBIT",
+    "pred_type": "INFO",
+    "missed": [],
+    "pred": [
+      [
+        "299.00",
+        "AMOUNT"
+      ],
+      [
+        "9715082466",
+        "REF_NO"
+      ],
+      [
+        "Suresh Kumar",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "CUB",
+    "text": "Your account has been successfully debited with 50.00 on 2026-11-06 towards JOSEPH THOMAS PRIVATE LIMITED UPI Autopay,rahul.v@ybl -CUB",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "50.00",
+        "AMOUNT"
+      ],
+      [
+        "JOSEPH THOMAS",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "2026-11-06",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "DHANLAXMI",
+    "text": "Your Dhanlaxmi Bank account balance is INR 50,000.00 as of 28-NOV-2025.",
+    "gold_type": "BALANCE_INFO",
+    "pred_type": "CREDIT",
+    "missed": [],
+    "pred": [
+      [
+        "50,000.00",
+        "BALANCE"
+      ],
+      [
+        "28-NOV-2025",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Hi, payment of INR 199.00 for Makemytrip on Federal Bank Debit Card 5558 is processed successfully. To manage, visit: https://www.sihub.in/79GjfRRS/yNBXNrq T&CA - Federal Bank",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "PROMO",
+    "missed": [],
+    "pred": [
+      [
+        "199.00",
+        "AMOUNT"
+      ],
+      [
+        "Makemytrip",
+        "PAYEE"
+      ],
+      [
+        "5558",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Hi, payment of INR 119.00 for Amazon Pay on Federal Bank Debit Card 9769 is processed successfully. To manage, visit: https://www.sihub.in/nfDBtSBt/mbMiX6r T&CA - Federal Bank",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "MANDATE_FUTURE",
+    "missed": [],
+    "pred": [
+      [
+        "119.00",
+        "AMOUNT"
+      ],
+      [
+        "Amazon Pay",
+        "PAYEE"
+      ],
+      [
+        "9769",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Hi, payment of INR 2500.00 for Croma on Federal Bank Debit Card 1671 is processed successfully. To manage, visit: https://www.sihub.in/DWFRX6cm/RZAeQkd T&CA - Federal Bank",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "PROMO",
+    "missed": [],
+    "pred": [
+      [
+        "2500.00",
+        "AMOUNT"
+      ],
+      [
+        "Croma",
+        "PAYEE"
+      ],
+      [
+        "1671",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Hi, txn of Rs. 1500.00 using card XX**9967 failed due to insufficient funds. Current Bal: Rs.250.75. Call 96413680155 if txn not initiated by you -Federal Bank",
+    "gold_type": "FAILED",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "1500.00",
+        "AMOUNT"
+      ],
+      [
+        "XX**9967",
+        "ACCOUNT"
+      ],
+      [
+        "250.75",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Jerry Joseph has received Rs 6000.000 from your A/c XX3827 via NEFT on 24-06-2026 22:04:04. Ref no. FDRLM0948183150 - Federal Bank",
+    "gold_type": "INFO",
+    "pred_type": "CREDIT",
+    "missed": [],
+    "pred": [
+      [
+        "6000.000",
+        "AMOUNT"
+      ],
+      [
+        "XX3827",
+        "ACCOUNT"
+      ],
+      [
+        "24-06-2026",
+        "DATE"
+      ],
+      [
+        "22:04:04",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "HDFC",
+    "text": "Dear Customer, You have received Amazon Shopping E-voucher Rs.500/- from HDFC Bank My Rewards Redemption programme. Your E-Voucher [E-Voucher Code is XXXX-XXXXXX-XXX, Pin: , Valid till 02-Aug-2027 Value : INR 500.00] . For more details call 5973986376. HDFC Bank",
+    "gold_type": "OTP",
+    "pred_type": "CREDIT",
+    "missed": [],
+    "pred": [
+      [
+        "500",
+        "AMOUNT"
+      ],
+      [
+        "02-Aug-2027",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "Rs. 500.00 will be debited from your account on 05-Oct-25 for EMI payment",
+    "gold_type": "MANDATE_FUTURE",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "500.00",
+        "AMOUNT"
+      ],
+      [
+        "05-Oct-25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "Your ICICI Bank Account will be debited with Rs 1,000.00 on 10-Oct-25",
+    "gold_type": "MANDATE_FUTURE",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "1,000.00",
+        "AMOUNT"
+      ],
+      [
+        "10-Oct-25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "AutoPay: Rs 299.00 will be debited on 15-Oct-25 for Spotify subscription",
+    "gold_type": "MANDATE_FUTURE",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "299.00",
+        "AMOUNT"
+      ],
+      [
+        "15-Oct-25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "Payment of Rs 26,266.00 has been received on your ICICI Bank Credit Card XX6042 through Bharat Bill Payment System on 06-DEC-25.",
+    "gold_type": "INFO",
+    "pred_type": "CARD_PAYMENT",
+    "missed": [],
+    "pred": [
+      [
+        "26,266.00",
+        "AMOUNT"
+      ],
+      [
+        "XX6042",
+        "ACCOUNT"
+      ],
+      [
+        "06-DEC-25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "USD 11.80 spent using ICICI Bank Card XX1133 on 03-Sep-25 on 1xJetBrains AI . Avl Limit: INR 17,95,899.53. If not you, call 1800 2662/SMS BLOCK 7004 to 9819718738.",
+    "gold_type": "INFO",
+    "pred_type": "CARD_SPEND",
+    "missed": [],
+    "pred": [
+      [
+        "11.80",
+        "AMOUNT"
+      ],
+      [
+        "XX1133",
+        "ACCOUNT"
+      ],
+      [
+        "03-Sep-25",
+        "DATE"
+      ],
+      [
+        "17,95,899.53",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "Net interest INR 248.07 paid on your IndusInd Deposit No 300***744745 on 17/09/25. Call 00003183767 for assistance - IndusInd Bank",
+    "gold_type": "INFO",
+    "pred_type": "CREDIT",
+    "missed": [],
+    "pred": [
+      [
+        "248.07",
+        "AMOUNT"
+      ],
+      [
+        "300***744745",
+        "ACCOUNT"
+      ],
+      [
+        "17/09/25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "Net interest INR 96.61 paid on your IndusInd Deposit No 371***667721 on 30/06/25. Call 63480318070 for assistance - IndusInd Bank",
+    "gold_type": "INFO",
+    "pred_type": "CREDIT",
+    "missed": [],
+    "pred": [
+      [
+        "96.61",
+        "AMOUNT"
+      ],
+      [
+        "371***667721",
+        "ACCOUNT"
+      ],
+      [
+        "30/06/25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "JUSPAY",
+    "text": "Payment of Rs 750 using Apay Balance successful at Priya Nair. Updated Balance is Rs 2500 - SMS by Juspay",
+    "gold_type": "DEBIT",
+    "pred_type": "INFO",
+    "missed": [],
+    "pred": [
+      [
+        "750",
+        "AMOUNT"
+      ],
+      [
+        "Priya Nair",
+        "PAYEE"
+      ],
+      [
+        "2500",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "KERALABANK",
+    "text": "Dear Customer Your A/c no XXXX4274 is credited with 15000.00 on 06-06-2026 by Deepak Yadav From : 877281595. Balance is -646714.00 - Kerala Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "15000.00",
+        "AMOUNT"
+      ],
+      [
+        "Deepak Yadav",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXX4274",
+        "ACCOUNT"
+      ],
+      [
+        "06-06-2026",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "NONBANK",
+    "text": "INR 500 debited from A/c XX1767 for ATM withdrawal. If cash is not dispensed, amount will be reversed within 24 hours.",
+    "gold_type": "REFUND",
+    "pred_type": "MANDATE_FUTURE",
+    "missed": [],
+    "pred": [
+      [
+        "500",
+        "AMOUNT"
+      ],
+      [
+        "XX1767",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "NONBANK",
+    "text": "26 to 31 Dec ",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": []
+  },
+  {
+    "bank": "NONBANK",
+    "text": "Informed your Bnk. to unblk Rs. 72680.00 for KANOHAR IPO applno GROWW6B27B9E89FB due to non-allotment. Pls contact your bank if req. MUFGIN",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "72680.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "NONBANK",
+    "text": "Informed your Bank to unblk Rs. 14999 for HTEL IPO aplno GROWW62e92aa18a6 due to non-allotment. Pls contact your bank if req.",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "14999",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "NONBANK",
+    "text": "Your bank is instructed to unblock Rs. 45000.00 for TEMPSENS IPO applno. GROWW923d560319a due to non-allotment. Please contact",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "45000.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "NONBANK",
+    "text": "Your bank has been instructed to unblock Rs. 15000.00 for TATATECH IPO applno TATA974569011687 due to non-allotment. Please contact",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "15000.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "NONBANK",
+    "text": "Your A/c XX8794 is debited Rs.49,999.00. If not you, call 0332537193 immediately.",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "XX8794",
+        "ACCOUNT"
+      ],
+      [
+        "49,999.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "NONBANK",
+    "text": "Your A/c XX4209 is debited with Rs.49,999.00 on 01-01-26. If not you, call us.",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "XX4209",
+        "ACCOUNT"
+      ],
+      [
+        "49,999.00",
+        "AMOUNT"
+      ],
+      [
+        "01-01-26",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "PHONEPE",
+    "text": "You've paid Rs.250.00 to ROHAN DAS via UPI from your bank account. Not you? Call us on 022-25483632.",
+    "gold_type": "INFO",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "250.00",
+        "AMOUNT"
+      ],
+      [
+        "ROHAN DAS",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "PNB",
+    "text": "Thank you Rs.668.79/- has been received as payment towards your PNB credit card  XX7116 via Online Payment. Your available credit limit is Rs.50000. - PNB",
+    "gold_type": "PROMO",
+    "pred_type": "CARD_PAYMENT",
+    "missed": [],
+    "pred": [
+      [
+        "668.79",
+        "AMOUNT"
+      ],
+      [
+        "XX7116",
+        "ACCOUNT"
+      ],
+      [
+        "50000",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "SBI",
+    "text": "Dear Customer, Your NEFT of Rs 1,000.00 with UTR SBIN851035300520 DTD 01/01/2026 credited to Beneficiary AC NO. XX3898 at AIRTEL on 01/01/2026 at 10:00 AM.-SBI",
+    "gold_type": "INFO",
+    "pred_type": "CREDIT",
+    "missed": [],
+    "pred": [
+      [
+        "1,000.00",
+        "AMOUNT"
+      ],
+      [
+        "SBIN851035300520",
+        "REF_NO"
+      ],
+      [
+        "01/01/2026",
+        "DATE"
+      ],
+      [
+        "XX3898",
+        "ACCOUNT"
+      ],
+      [
+        "AIRTEL",
+        "PAYEE"
+      ],
+      [
+        "01/01/2026",
+        "DATE"
+      ],
+      [
+        "10:00 AM.",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "SCB",
+    "text": "Dear Customer, there is an Farhan Ali of INR 48,796.00 in your account 867xxxx6873 on 1/11/2025.Available Balance:INR 97,885.05 -StanChart",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Farhan Ali",
+        "PAYEE"
+      ],
+      [
+        "867xxxx6873",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "48,796.00",
+        "AMOUNT"
+      ],
+      [
+        "xxxx6873",
+        "ACCOUNT"
+      ],
+      [
+        "1/11/2025",
+        "DATE"
+      ],
+      [
+        "97,885.05",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "SCB",
+    "text": "Dear Customer, there is an Rahul Verma of INR 5,000.00 in your account 387xxxx3401 on 10/12/2025.Available Balance:INR 15,000.00 -StanChart",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Rahul Verma",
+        "PAYEE"
+      ],
+      [
+        "387xxxx3401",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "5,000.00",
+        "AMOUNT"
+      ],
+      [
+        "xxxx3401",
+        "ACCOUNT"
+      ],
+      [
+        "10/12/2025",
+        "DATE"
+      ],
+      [
+        "15,000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "Repayment of Rs.2,418 received for the slice credit card. The amount has been credited to your card account - slice",
+    "gold_type": "INFO",
+    "pred_type": "CREDIT",
+    "missed": [],
+    "pred": [
+      [
+        "2,418",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "Repayment successful ✅ Payment of ₹2,418 received for the slice credit card",
+    "gold_type": "INFO",
+    "pred_type": "CARD_PAYMENT",
+    "missed": [],
+    "pred": [
+      [
+        "2,418",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "Your slice credit card transaction of RS. 50000 on amazon.in was unsuccessful.",
+    "gold_type": "FAILED",
+    "pred_type": "CARD_SPEND",
+    "missed": [],
+    "pred": [
+      [
+        "50000",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "Your transaction of Rs. 2.07 at Lenskart from a/c xx0498 is successful. If not you, call 080-4832-9999 - slice",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "INFO",
+    "missed": [],
+    "pred": [
+      [
+        "2.07",
+        "AMOUNT"
+      ],
+      [
+        "Lenskart",
+        "PAYEE"
+      ],
+      [
+        "xx0498",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "UPI AutoPay for OpenAI from slice a/c XX5106 for Rs. 1,999 is revoked. UMN - shop.kirana@slc - slice",
+    "gold_type": "MANDATE_FUTURE",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "XX5106",
+        "ACCOUNT"
+      ],
+      [
+        "1,999",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "UPI AutoPay for NETWORK18 MEDIA and INVESTMENTS LIMITED from slice a/c XX9355 for Rs. 149 is revoked. UMN - 23a01280db343cb2232ab22d9a6f51d9",
+    "gold_type": "MANDATE_FUTURE",
+    "pred_type": "DEBIT",
+    "missed": [],
+    "pred": [
+      [
+        "XX9355",
+        "ACCOUNT"
+      ],
+      [
+        "149",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SURYODAY",
+    "text": "Rs 553.00 spent on Stable Money Suryoday SFB CC 8729 on 20-10-2026 at 23:38:50. Avlb Rs 41628.18 Not you SMS BLOCK CC 1111 to 0093447378. Convert to EMI? visit: https://cc.suryoday.bank.in/pzq-Xza SSFBNK-T",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "8729",
+        "ACCOUNT"
+      ],
+      [
+        "41628.18",
+        "AVAIL_LIMIT"
+      ]
+    ],
+    "pred": [
+      [
+        "553.00",
+        "AMOUNT"
+      ],
+      [
+        "20-10-2026",
+        "DATE"
+      ],
+      [
+        "23:38:50",
+        "TIME"
+      ],
+      [
+        "41628.18",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "UCO",
+    "text": "Your UCO Bank A/c XX0608 has been Debited with Rs..50 by Transfer.Avl Bal in your A/c is Rs.2,992.54.",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        ".50",
+        "AMOUNT"
+      ],
+      [
+        "2,992.54",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "XX0608",
+        "ACCOUNT"
+      ],
+      [
+        "50",
+        "AMOUNT"
+      ],
+      [
+        "Transfer",
+        "PAYEE"
+      ],
+      [
+        "2,992.54",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "UNION",
+    "text": "Union Bank of India A/c*1197 Dr Rs166.00 on 15-11-26 21:26 by MB 2411824259 PVR CINEMAS, Bal Rs137.57 Not U?Call 45615753/SMS BLOCK 1234 to 2422420598",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "2411824259",
+        "REF_NO"
+      ],
+      [
+        "PVR CINEMAS",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "*1197",
+        "ACCOUNT"
+      ],
+      [
+        "166.00",
+        "AMOUNT"
+      ],
+      [
+        "15-11-26",
+        "DATE"
+      ],
+      [
+        "21:26",
+        "TIME"
+      ],
+      [
+        "137.57",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "YES",
+    "text": "Your Yes Bank Credit Card payment of INR 10,000 is due by 25-08-2025",
+    "gold_type": "MANDATE_FUTURE",
+    "pred_type": "CARD_SPEND",
+    "missed": [],
+    "pred": [
+      [
+        "10,000",
+        "AMOUNT"
+      ],
+      [
+        "25-08-2025",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "Spent INR 131\nAxis Bank Card no. XX6006\n05-10-25 09:43:27 IST\nZomato Limi\nAvl Limit: INR 217162.72\nNot you? SMS BLOCK 0818 to 956698682609",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "Zomato",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "131",
+        "AMOUNT"
+      ],
+      [
+        "XX6006",
+        "ACCOUNT"
+      ],
+      [
+        "05-10-25",
+        "DATE"
+      ],
+      [
+        "09:43:27",
+        "TIME"
+      ],
+      [
+        "217162.72",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "Spent INR 1299.00\nAxis Bank Card no. XX1521\n12-10-25 14:30:15 IST\nAirtel Pay\nAvl Limit: INR 50000.00\nNot you? SMS BLOCK 5678 to 809360006719",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "Airtel",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1299.00",
+        "AMOUNT"
+      ],
+      [
+        "XX1521",
+        "ACCOUNT"
+      ],
+      [
+        "12-10-25",
+        "DATE"
+      ],
+      [
+        "14:30:15",
+        "TIME"
+      ],
+      [
+        "50000.00",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "Spent\nCard no. XX6393\nINR 562\n01-09-25 12:04:18\nMYNTRA SUPE\nAvl Lmt INR 5120.87\nSMS BLOCK 7441 to 334541228482, if not you - Axis Bank",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "MYNTRA",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XX6393",
+        "ACCOUNT"
+      ],
+      [
+        "562",
+        "AMOUNT"
+      ],
+      [
+        "01-09-25",
+        "DATE"
+      ],
+      [
+        "12:04:18",
+        "TIME"
+      ],
+      [
+        "5120.87",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "Spent INR 174\nAxis Bank Card no. XX9337\n13-09-25 21:35:56 IST\nTata 1Mg\nAvl Limit: INR 6652.78\nNot you? SMS BLOCK 7441 to 380624246840",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "Tata 1Mg",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "174",
+        "AMOUNT"
+      ],
+      [
+        "XX9337",
+        "ACCOUNT"
+      ],
+      [
+        "13-09-25",
+        "DATE"
+      ],
+      [
+        "21:35:56",
+        "TIME"
+      ],
+      [
+        "6652.78",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "Spent\nCard no. XX8231\nINR 207\n01-09-25 14:10:35\nAmazon Pay\nAvl Lmt INR 4632.87\nSMS BLOCK 7441 to 398853502005, if not you - Axis Bank",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "Amazon Pay",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XX8231",
+        "ACCOUNT"
+      ],
+      [
+        "207",
+        "AMOUNT"
+      ],
+      [
+        "01-09-25",
+        "DATE"
+      ],
+      [
+        "14:10:35",
+        "TIME"
+      ],
+      [
+        "4632.87",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "Spent INR 500\nAxis Bank Card no. XX8462\n22-09-25 09:03:41 IST\nISHA MALHOTRA\nAvl Limit: INR 17131.47\nNot you? SMS BLOCK 6018 to 733898817528",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "ISHA MALHOTRA",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "500",
+        "AMOUNT"
+      ],
+      [
+        "XX8462",
+        "ACCOUNT"
+      ],
+      [
+        "22-09-25",
+        "DATE"
+      ],
+      [
+        "09:03:41",
+        "TIME"
+      ],
+      [
+        "17131.47",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "Spent INR 500\nAxis Bank Card no. XX9480\n13-09-25 13:08:07 IST\nDIVYA RAO\nAvl Limit: INR 6826.78\nNot you? SMS BLOCK 6018 to 323338280927",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "DIVYA RAO",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "500",
+        "AMOUNT"
+      ],
+      [
+        "XX9480",
+        "ACCOUNT"
+      ],
+      [
+        "13-09-25",
+        "DATE"
+      ],
+      [
+        "13:08:07",
+        "TIME"
+      ],
+      [
+        "6826.78",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "INR 209.00 debited from A/c no. XXxxxxy on TATA 1MG 04-12-2025 13:13:27 IST. Avl bal: INR xxxxxxx. Not you? SMS BLOCKCARD XX7704 to +090901269032 - Axis Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "TATA 1MG",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "209.00",
+        "AMOUNT"
+      ],
+      [
+        "1MG 04-12-2025",
+        "DATE"
+      ],
+      [
+        "13:13:27",
+        "TIME"
+      ],
+      [
+        "XX7704",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "AXIS",
+    "text": "INR 1028.00 debited from A/c no. XXxxxxy on HARISH N 02-12-2025 20:38:23 IST. Avl bal: INR xxxxxxx. Not you? SMS BLOCKCARD XX3013 to +636133809556 - Axis Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "HARISH N",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1028.00",
+        "AMOUNT"
+      ],
+      [
+        "02-12-2025",
+        "DATE"
+      ],
+      [
+        "20:38:23",
+        "TIME"
+      ],
+      [
+        "XX3013",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "BANDHAN",
+    "text": "INR 180.00 debited from A/c XXXXXXXXXX7011 towards UPI/DR/D832365487003/Kavya Menon Value 16-NOV-2025 . Clear Bal is INR 9999.99. Bandhan Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "D832365487003",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "180.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXXXXXXXX7011",
+        "ACCOUNT"
+      ],
+      [
+        "Kavya Menon",
+        "PAYEE"
+      ],
+      [
+        "16-NOV-2025",
+        "DATE"
+      ],
+      [
+        "9999.99",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "BANDHAN",
+    "text": "INR 5.00 debited from A/c XXXXXXXXXX8072 towards UPI/DR/D317481094103/Manoj Joshi Value 10-NOV-2025 . Clear Bal is INR 9999.76. Bandhan Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "D317481094103",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "5.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXXXXXXXX8072",
+        "ACCOUNT"
+      ],
+      [
+        "Manoj Joshi",
+        "PAYEE"
+      ],
+      [
+        "10-NOV-2025",
+        "DATE"
+      ],
+      [
+        "9999.76",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "BANDHAN",
+    "text": "INR 92.00 debited from A/c XXXXXXXXXX8524 towards UPI/DR/D643831454657/Farhan Ali Value 10-OCT-2025 . Clear Bal is INR 9999.70. Bandhan Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "D643831454657",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "92.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXXXXXXXX8524",
+        "ACCOUNT"
+      ],
+      [
+        "Farhan Ali",
+        "PAYEE"
+      ],
+      [
+        "10-OCT-2025",
+        "DATE"
+      ],
+      [
+        "9999.70",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "BANDHAN",
+    "text": "Dear Customer, your account XXXXXXXXXX3010 is credited with INR 3.00 on 01-OCT-2025 towards shell petrol. Bandhan Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "shell petrol",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXXXXXXXX3010",
+        "ACCOUNT"
+      ],
+      [
+        "3.00",
+        "AMOUNT"
+      ],
+      [
+        "01-OCT-2025",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "BANDHAN",
+    "text": "INR 50,000.00 debited from A/c XXXXXXXXXX8846 towards UPI/DR/D353061697889/Suresh Kumar Value 18-NOV-2025 . Clear Bal is INR 100,000.50. Bandhan Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "D353061697889",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "50,000.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXXXXXXXX8846",
+        "ACCOUNT"
+      ],
+      [
+        "Suresh Kumar",
+        "PAYEE"
+      ],
+      [
+        "18-NOV-2025",
+        "DATE"
+      ],
+      [
+        "100,000.50",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "BANDHAN",
+    "text": "INR 1000.00 debited from A/c XXXXXXXXXX4005 towards UPI/DR/D149318159835/Jio Prepaid Value 20-NOV-2025 . Clear Bal is INR 15000.00. Bandhan Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "D149318159835",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "1000.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXXXXXXXX4005",
+        "ACCOUNT"
+      ],
+      [
+        "Jio Prepaid",
+        "PAYEE"
+      ],
+      [
+        "20-NOV-2025",
+        "DATE"
+      ],
+      [
+        "15000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs..6 Credited to A/c ...4444 from:ACHCR/JIO FINANC. Total Bal:Rs.22976.31CR. Avlbl Amt:Rs.40092.31(26-08-2026 18:20:36) - Bank of Baroda",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        ".6",
+        "AMOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "6",
+        "AMOUNT"
+      ],
+      [
+        "22976.31",
+        "BALANCE"
+      ],
+      [
+        "40092.31",
+        "BALANCE"
+      ],
+      [
+        "26-08-2026",
+        "DATE"
+      ],
+      [
+        "18:20:36",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs.29 transferred from A/c ...5383 to:Deepak Yadav. Total Bal:Rs.24898.57CR. Avlbl Amt:Rs.70507.57(04-11-2025 04:03:09) - Bank of Baroda",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "5383",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "29",
+        "AMOUNT"
+      ],
+      [
+        "...5383",
+        "ACCOUNT"
+      ],
+      [
+        "Deepak Yadav",
+        "PAYEE"
+      ],
+      [
+        "24898.57",
+        "BALANCE"
+      ],
+      [
+        "70507.57",
+        "BALANCE"
+      ],
+      [
+        "04-11-2025",
+        "DATE"
+      ],
+      [
+        "04:03:09",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs.1500.00 transferred from A/c ...4911 to:Kavya Menon. Total Bal:Rs.15000.00CR. Avlbl Amt:Rs.28942.00(10-11-2025 10:30:00) - Bank of Baroda",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "4911",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "1500.00",
+        "AMOUNT"
+      ],
+      [
+        "...4911",
+        "ACCOUNT"
+      ],
+      [
+        "Kavya Menon",
+        "PAYEE"
+      ],
+      [
+        "15000.00",
+        "BALANCE"
+      ],
+      [
+        "28942.00",
+        "BALANCE"
+      ],
+      [
+        "10-11-2025",
+        "DATE"
+      ],
+      [
+        "10:30:00",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs.80.00 Dr. from A/c XX393492 on 12-11-2024. AvlBal:Rs1234.56cx. Ref:67065444185 -Bank of Baroda",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "1234.56",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "80.00",
+        "AMOUNT"
+      ],
+      [
+        "XX393492",
+        "ACCOUNT"
+      ],
+      [
+        "12-11-2024",
+        "DATE"
+      ],
+      [
+        "1234.56",
+        "AMOUNT"
+      ],
+      [
+        "67065444185",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs.500.00 Cr. to merchant.store@ybl A/c XX233070 on 15-11-2024. AvlBal:Rs5678.90. Ref:807136486 -Bank of Baroda",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "5678.90",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "500.00",
+        "AMOUNT"
+      ],
+      [
+        "XX233070",
+        "ACCOUNT"
+      ],
+      [
+        "15-11-2024",
+        "DATE"
+      ],
+      [
+        "5678.90",
+        "AMOUNT"
+      ],
+      [
+        "807136486",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs.2500.00 credited to A/c XX067958 via IMPS/426471586929 by MEERA PATEL. AvlBal:Rs25000.00 -Bank of Baroda",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "25000.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "2500.00",
+        "AMOUNT"
+      ],
+      [
+        "XX067958",
+        "ACCOUNT"
+      ],
+      [
+        "426471586929",
+        "REF_NO"
+      ],
+      [
+        "MEERA PATEL",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs.10000.00 deposited in cash to A/c XX495461 on 20-11-2024. AvlBal:Rs45000.00 -Bank of Baroda",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "45000.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "10000.00",
+        "AMOUNT"
+      ],
+      [
+        "XX495461",
+        "ACCOUNT"
+      ],
+      [
+        "20-11-2024",
+        "DATE"
+      ],
+      [
+        "45000.00",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "BOB",
+    "text": "Rs.5000.00 Credited to A/c XX262643 on 01-12-2024. AvlBal:Rs12345.67 -Bank of Baroda",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "12345.67",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "5000.00",
+        "AMOUNT"
+      ],
+      [
+        "XX262643",
+        "ACCOUNT"
+      ],
+      [
+        "01-12-2024",
+        "DATE"
+      ],
+      [
+        "12345.67",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "BOI",
+    "text": "Rs.200.00 debited A/cXX9971 and credited to VIKRAM SINGH via UPI Ref No 403521748837 on 23Aug25. Call 93150215183, if not done by you. -BOI",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "XX9971",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "200.00",
+        "AMOUNT"
+      ],
+      [
+        "cXX9971",
+        "ACCOUNT"
+      ],
+      [
+        "VIKRAM SINGH",
+        "PAYEE"
+      ],
+      [
+        "403521748837",
+        "REF_NO"
+      ],
+      [
+        "23Aug25",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "BOM",
+    "text": "Your A/c No xxxx4252 has been debited by Rs. 1,500.00 on 02-FEB-2022 via 48421371/189247XXXXXX2119/986627954786. A/c No xxxx9727 Bal is Rs. 24,044.15 CR and AVL Bal is Rs. 23,926.15-MAHABANK",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "xxxx4252",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "1,500.00",
+        "AMOUNT"
+      ],
+      [
+        "02-FEB-2022",
+        "DATE"
+      ],
+      [
+        "24,044.15",
+        "BALANCE"
+      ],
+      [
+        "23,926.15",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "CANARA",
+    "text": "An amount of INR 13,30,614.75 has been credited to XXXX2978 on 02/12/2025 towards RTGS by Sender DIVYA RAO, IFSC UTIB5050302, Sender A/c XXXX6499, AXIS BANK, MUMBAI BRANCH, UTR UTIBR93977011307583587, Total Avail. Bal INR 2679815.88- Canara Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "DIVYA RAO",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "13,30,614.75",
+        "AMOUNT"
+      ],
+      [
+        "XXXX2978",
+        "ACCOUNT"
+      ],
+      [
+        "02/12/2025",
+        "DATE"
+      ],
+      [
+        "XXXX6499",
+        "ACCOUNT"
+      ],
+      [
+        "UTIBR93977011307583587",
+        "REF_NO"
+      ],
+      [
+        "2679815.88",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "CENTRALBANK",
+    "text": "Rs. 5.000 credited to your A/c xxxxxx3903 on 03/01/2026 through NEFT vide Ref No./XUTR/IN22XX...XX24 By.GEETA BHAT-CBoI",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "GEETA BHAT",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "5.000",
+        "AMOUNT"
+      ],
+      [
+        "xxxxxx3903",
+        "ACCOUNT"
+      ],
+      [
+        "03/01/2026",
+        "DATE"
+      ],
+      [
+        "XX24",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "DHANLAXMI",
+    "text": "INR 10.00 is credited to A/c XXXX4019 on 24-APR-2025 - \"UPI TXN: /816745619134-Paytm/payment on Cafe Coffee Day using UPI on Mar 25 2025/one77728¡axisbank/534784994478/35587757049404242\". Aval Bal is INR 36,278.92 -DhanlaxmiBank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Cafe Coffee Day",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "10.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXX4019",
+        "ACCOUNT"
+      ],
+      [
+        "24-APR-2025",
+        "DATE"
+      ],
+      [
+        "816745619134",
+        "REF_NO"
+      ],
+      [
+        "Mar 25 2025",
+        "DATE"
+      ],
+      [
+        "36,278.92",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "DHANLAXMI",
+    "text": "INR 50,000.00 is debited from A/c XXXX8978 on 15-DEC-2025 - \"UPI TXN: /747657332294-MR /Payment from Reliance Retail\". Aval Bal is INR 1,25,000.50. If not transacted call 044-83260178.-DhanlaxmiBank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "Reliance Retail",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "50,000.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXX8978",
+        "ACCOUNT"
+      ],
+      [
+        "15-DEC-2025",
+        "DATE"
+      ],
+      [
+        "747657332294",
+        "REF_NO"
+      ],
+      [
+        "Reliance Retail\"",
+        "PAYEE"
+      ],
+      [
+        "1,25,000.50",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "DHANLAXMI",
+    "text": "INR 500.00 is credited to A/c XXXX1105 on 01-JAN-2026 - \"UPI TXN: /620630503892-Salary/Payment from Blinkit\". Aval Bal is INR 75,500.00 -DhanlaxmiBank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Blinkit",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "500.00",
+        "AMOUNT"
+      ],
+      [
+        "XXXX1105",
+        "ACCOUNT"
+      ],
+      [
+        "01-JAN-2026",
+        "DATE"
+      ],
+      [
+        "620630503892",
+        "REF_NO"
+      ],
+      [
+        "Blinkit\"",
+        "PAYEE"
+      ],
+      [
+        "75,500.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "DOP",
+    "text": "Account  No. XXXXXXXX3434 CREDIT with amount Rs. 5550.00 on 02-03-2026. Balance: Rs.40000.00. [S56713731]",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "S56713731",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXXXXXX3434",
+        "ACCOUNT"
+      ],
+      [
+        "5550.00",
+        "AMOUNT"
+      ],
+      [
+        "02-03-2026",
+        "DATE"
+      ],
+      [
+        "40000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "DOP",
+    "text": "Account  No. XXXXXXXX5211 CREDIT with amount Rs. 5550.00 on 02-02-2026. Balance: Rs.37500.00. [S32042036]",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "S32042036",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXXXXXX5211",
+        "ACCOUNT"
+      ],
+      [
+        "5550.00",
+        "AMOUNT"
+      ],
+      [
+        "02-02-2026",
+        "DATE"
+      ],
+      [
+        "37500.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "DOP",
+    "text": "Account  No. XXXXXXXX1654 CREDIT with amount Rs. 5550.00 on 02-01-2026. Balance: Rs.32000.00. [S77789913]",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "S77789913",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXXXXXX1654",
+        "ACCOUNT"
+      ],
+      [
+        "5550.00",
+        "AMOUNT"
+      ],
+      [
+        "02-01-2026",
+        "DATE"
+      ],
+      [
+        "32000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "DOP",
+    "text": "Account No. XXXXXXXX4303 DEBIT with amount Rs. 2000.00 on 15-03-2026. Balance: Rs.18000.00. [D40790685]",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "D40790685",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXXXXXX4303",
+        "ACCOUNT"
+      ],
+      [
+        "2000.00",
+        "AMOUNT"
+      ],
+      [
+        "15-03-2026",
+        "DATE"
+      ],
+      [
+        "18000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "EQUITAS",
+    "text": "INR 978.00 debited from Equitas-2502 via UPI -Ref:940050243533 to Manoj Joshi on 30-10-26.Bal INR 25,000.00.Not U?SMS BLOCK UPI to 0916643411",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "2502",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "978.00",
+        "AMOUNT"
+      ],
+      [
+        "940050243533",
+        "REF_NO"
+      ],
+      [
+        "Manoj Joshi",
+        "PAYEE"
+      ],
+      [
+        "30-10-26",
+        "DATE"
+      ],
+      [
+        "25,000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "EQUITAS",
+    "text": "INR 13,428.00 debited from Equitas-8363 via UPI -Ref:980231474242  on 27-10-26.Bal INR 10,000.00.Not U?SMS BLOCK UPI to 6425383027",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "8363",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "13,428.00",
+        "AMOUNT"
+      ],
+      [
+        "980231474242",
+        "REF_NO"
+      ],
+      [
+        "27-10-26",
+        "DATE"
+      ],
+      [
+        "10,000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "EQUITAS",
+    "text": "INR 250.00 debited from Equitas-8306 via UPI -Ref:304045529313 to GEETA BHAT on 30-10-26.Bal INR 24,750.00.Not U?SMS BLOCK UPI to 8702236935",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "8306",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "250.00",
+        "AMOUNT"
+      ],
+      [
+        "304045529313",
+        "REF_NO"
+      ],
+      [
+        "GEETA BHAT",
+        "PAYEE"
+      ],
+      [
+        "30-10-26",
+        "DATE"
+      ],
+      [
+        "24,750.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Rs 450.75 debited via UPI on 16-08-2024 14:22:10 to VPA myntra.food@paytm.Ref No 958521494007.Small txns?Use UPI Lite!-Federal Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "myntra",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "450.75",
+        "AMOUNT"
+      ],
+      [
+        "16-08-2024",
+        "DATE"
+      ],
+      [
+        "14:22:10",
+        "TIME"
+      ],
+      [
+        "myntra.food@paytm",
+        "PAYEE"
+      ],
+      [
+        "958521494007",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Rs 3500.00 debited via UPI on 20-08-2024 12:30:45 to VPA kfc.paytm@hdfcbank.Ref No 164896352238.Small txns?Use UPI Lite!-Federal Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "kfc",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "3500.00",
+        "AMOUNT"
+      ],
+      [
+        "20-08-2024",
+        "DATE"
+      ],
+      [
+        "12:30:45",
+        "TIME"
+      ],
+      [
+        "kfc.paytm@hdfcbank",
+        "PAYEE"
+      ],
+      [
+        "164896352238",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Hi,Rs.1100credited in your A/c XX1610 on 15JAN2026 13:03:07 using isha malhotra machine at FBL-CHANGANASSERY. Current Bal: Rs.1181.90 - Federal Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "isha malhotra",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1100",
+        "AMOUNT"
+      ],
+      [
+        "XX1610",
+        "ACCOUNT"
+      ],
+      [
+        "15JAN2026",
+        "DATE"
+      ],
+      [
+        "13:03:07",
+        "TIME"
+      ],
+      [
+        "1181.90",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "FEDERAL",
+    "text": "Dear Customer, Your mandate with ref no- a7915ebd0e20558e4b8384731de93155@pingpay registered against SWIGGY for Rs 2.00 successfully executed on 01-07-2024 21:41:07. TXN Ref No -923147428256- Federal Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "SWIGGY",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "2.00",
+        "AMOUNT"
+      ],
+      [
+        "01-07-2024",
+        "DATE"
+      ],
+      [
+        "21:41:07",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "HDFC",
+    "text": "Rs 1368.00 used on HDFC Bank PIXEL Card at VIKRAM SINGH on 05/10/26 09:03.Not You? SMS BLOCKPCC 8454 to 1322108015 or https://example.invalid/L",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "8454",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "1368.00",
+        "AMOUNT"
+      ],
+      [
+        "VIKRAM SINGH",
+        "PAYEE"
+      ],
+      [
+        "05/10/26",
+        "DATE"
+      ],
+      [
+        "09:03",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "HDFC",
+    "text": "Spent Rs.572.25 On HDFC Bank Card 6693 At ..POOJA GUPTA_ On 2026-11-22:08:26:20.Not You? To Block+Reissue Call 9935909832/SMS BLOCK CC 0000 to 9642108135",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "POOJA GUPTA",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "572.25",
+        "AMOUNT"
+      ],
+      [
+        "6693",
+        "ACCOUNT"
+      ],
+      [
+        "2026-11",
+        "DATE"
+      ],
+      [
+        "22:08:26:20",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "HDFC",
+    "text": "Transaction Reversed!On HDFC Bank CREDIT Card xx0189 Amt: Rs.862.16 By CROMA                000 On 2026-08-21:05:20:26",
+    "gold_type": "REFUND",
+    "pred_type": "REFUND",
+    "missed": [
+      [
+        "CROMA",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "xx0189",
+        "ACCOUNT"
+      ],
+      [
+        "862.16",
+        "AMOUNT"
+      ],
+      [
+        "CROMA                000",
+        "PAYEE"
+      ],
+      [
+        "2026-08",
+        "DATE"
+      ],
+      [
+        "21:05:20:26",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "HSBC",
+    "text": "HSBC: A/c 834-728***-415 is credited with INR 5000.00 on 27NOV at 06.33.02 with UTR CHASH09140348706 as NEFT from Airtel . Your Avl Bal is INR 15000.50.",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Airtel",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "834-728***-415",
+        "ACCOUNT"
+      ],
+      [
+        "5000.00",
+        "AMOUNT"
+      ],
+      [
+        "CHASH09140348706",
+        "REF_NO"
+      ],
+      [
+        "15000.50",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "HSBC",
+    "text": "HSBC: A/c 616-288***-258 is credited with INR 2500.75 on 15DEC at 10.15.30 with UTR NEFT17226132497 as NEFT from Kfc . Your Avl Bal is INR 50000.00.",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "Kfc",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "616-288***-258",
+        "ACCOUNT"
+      ],
+      [
+        "2500.75",
+        "AMOUNT"
+      ],
+      [
+        "NEFT17226132497",
+        "REF_NO"
+      ],
+      [
+        "50000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "HSBC",
+    "text": "HSBC: INR 1000.50 is paid from account XXXXXX3583 to LATA PILLAI on 20APR with ref 400733946638. Your available bal is INR 8000.00.",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "400733946638",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "1000.50",
+        "AMOUNT"
+      ],
+      [
+        "XXXXXX3583",
+        "ACCOUNT"
+      ],
+      [
+        "LATA PILLAI",
+        "PAYEE"
+      ],
+      [
+        "8000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "HSBC",
+    "text": "HSBC: INR 50,000.00 is credited to your A/c 679-023***-602 as NEFT from Cafe Coffee Day .",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "679-023***-602",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "50,000.00",
+        "AMOUNT"
+      ],
+      [
+        "679-023***-602",
+        "DATE"
+      ],
+      [
+        "Cafe Coffee Day",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "HSBC",
+    "text": "HSBC: INR 1,234.56 is paid from your A/c 206-353***-780 to ZEPTO on 20-Dec-25. Your Avl Bal is INR 98,765.44 .",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "206-353***-780",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "1,234.56",
+        "AMOUNT"
+      ],
+      [
+        "206-353***-780",
+        "DATE"
+      ],
+      [
+        "ZEPTO",
+        "PAYEE"
+      ],
+      [
+        "20-Dec-25",
+        "DATE"
+      ],
+      [
+        "98,765.44",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "USD .28 spent using ICICI Bank Card XX5952 on 01-Jun-26 on LATA PILLAI. Avl Limit: INR 3,85,664.53. If not you, call 9952180463/SMS BLOCK 3333 to 2081983615.",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        ".28",
+        "AMOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "28",
+        "AMOUNT"
+      ],
+      [
+        "XX5952",
+        "ACCOUNT"
+      ],
+      [
+        "01-Jun-26",
+        "DATE"
+      ],
+      [
+        "LATA PILLAI",
+        "PAYEE"
+      ],
+      [
+        "3,85,664.53",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "Your account has been successfully debited with Rs 250.00. Reference: TXN120794433",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "TXN120794433",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "250.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "ICICI Bank Acct XX872 debited with Rs 10 on 20-Dec-25 & Acct XX810 credited.IMPS:ABCDEF097336. Call 35993033 for dispute or SMS BLOCK 700 to 2620817859",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "ABCDEF097336",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "XX872",
+        "ACCOUNT"
+      ],
+      [
+        "10",
+        "AMOUNT"
+      ],
+      [
+        "20-Dec-25",
+        "DATE"
+      ],
+      [
+        "XX810",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "ICICI Bank Acct XX617 is debited with Rs 200 and Acct XX241 is credited. IMPS:LMNOPQ646483. -ICICI Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "LMNOPQ646483",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "XX617",
+        "ACCOUNT"
+      ],
+      [
+        "200",
+        "AMOUNT"
+      ],
+      [
+        "XX241",
+        "ACCOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "ICICI",
+    "text": "Dear Customer, Rs 250.00 debited from ICICI Bank Prepaid Card 6228 on 17-Nov-26. Info- VIKRAM SINGH. The Available Balance is Rs 1,000.00 . Call 0237631721 for dispute or SMS BLOCK 1234 to 2174907058.",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "VIKRAM SINGH",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "250.00",
+        "AMOUNT"
+      ],
+      [
+        "6228",
+        "ACCOUNT"
+      ],
+      [
+        "17-Nov-26",
+        "DATE"
+      ],
+      [
+        "1,000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "INDIANBANK",
+    "text": "Rs.2.00 credited to a/c *7083 on 07/10/2025 by a/c linked to VPA paytmqr2810@axisbank (UPI Ref no 609057476326).Indian Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "paytmqr2810@axisbank",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "2.00",
+        "AMOUNT"
+      ],
+      [
+        "*7083",
+        "ACCOUNT"
+      ],
+      [
+        "07/10/2025",
+        "DATE"
+      ],
+      [
+        "609057476326",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "INDIANBANK",
+    "text": "Rs.15000.00 credited to a/c *8277 on 11/10/2025 by a/c linked to VPA sneha.iyer@paytm (UPI Ref no 131997371144).Indian Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "sneha.iyer@paytm",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "15000.00",
+        "AMOUNT"
+      ],
+      [
+        "*8277",
+        "ACCOUNT"
+      ],
+      [
+        "11/10/2025",
+        "DATE"
+      ],
+      [
+        "131997371144",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "INDIANBANK",
+    "text": "Rs.1.50 credited to a/c *9644 on 12/10/2025 by a/c linked to VPA shop.kirana@gpay (UPI Ref no 414947728217).Indian Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "shop.kirana@gpay",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1.50",
+        "AMOUNT"
+      ],
+      [
+        "*9644",
+        "ACCOUNT"
+      ],
+      [
+        "12/10/2025",
+        "DATE"
+      ],
+      [
+        "414947728217",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "Rs. 1,234.00 debited from A/c XX5022 at UBER INDIA Ref 785298. Avl Bal: Rs 10,000.00",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "785298",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "1,234.00",
+        "AMOUNT"
+      ],
+      [
+        "XX5022",
+        "ACCOUNT"
+      ],
+      [
+        "UBER INDIA",
+        "PAYEE"
+      ],
+      [
+        "10,000.00",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "Your IndusInd Account 94XXXXX3786 has been credited for INR 116.56 towards ZOMATO/786205511081. Call 10254391606 to report issue-IndusInd Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "94XXXXX3786",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXXX3786",
+        "ACCOUNT"
+      ],
+      [
+        "116.56",
+        "AMOUNT"
+      ],
+      [
+        "ZOMATO",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "INDUSIND",
+    "text": "Dear Customer, refund of INR 250 from Swiggy Limited Banga has been credited to your IndusInd Bank Credit Card XX1469 on 11-Jun-26 and the refund amount has been adjusted against the outstanding on your card account - IndusInd Bank",
+    "gold_type": "REFUND",
+    "pred_type": "REFUND",
+    "missed": [
+      [
+        "Swiggy",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "250",
+        "AMOUNT"
+      ],
+      [
+        "XX1469",
+        "ACCOUNT"
+      ],
+      [
+        "11-Jun-26",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "JUSPAY",
+    "text": "Your Apay Wallet balance is debited for INR 250.00 Transaction Reference Number is 670043410537 - Powered by Juspay",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "670043410537",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "250.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "JUSPAY",
+    "text": "Your Apay Wallet balance is debited for INR 450.75 Transaction Reference Number is 275757811977 - Powered by Juspay",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "275757811977",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "450.75",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "JUSPAY",
+    "text": "Your Apay Wallet balance is debited for INR 10.00 Transaction Reference Number is 178265719296 - Powered by Juspay",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "178265719296",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "10.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "JUSPAY",
+    "text": "Your Apay Wallet balance is debited for INR 200.00 Transaction Reference Number is 142299205557 - Powered by Juspay",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "142299205557",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "200.00",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "KERALAGRAMIN",
+    "text": "Dear Customer, Account XXXX5244 is credited with INR 500 on 15-10-2025 10:30:00 from meera.p@paytm. UPI Ref. no. 145186096090-Kerala Gramin Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "meera.p@paytm",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XXXX5244",
+        "ACCOUNT"
+      ],
+      [
+        "500",
+        "AMOUNT"
+      ],
+      [
+        "15-10-2025",
+        "DATE"
+      ],
+      [
+        "10:30:00",
+        "TIME"
+      ],
+      [
+        "145186096090",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "KOTAK",
+    "text": "Rs. 5000 credited to your Kotak Bank a/c XX4530 via NEFT from beneficiary Sneha Iyer. UTR Ref. HDFCH98244242449",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "HDFCH98244242449",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "5000",
+        "AMOUNT"
+      ],
+      [
+        "XX4530",
+        "ACCOUNT"
+      ],
+      [
+        "Sneha Iyer",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "KOTAK",
+    "text": "Rs. 5000 credited to your Kotak Bank a/c XX2982 via NEFT from beneficiary Harish N. UTR Ref. HDFCH33055696199",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "HDFCH33055696199",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "5000",
+        "AMOUNT"
+      ],
+      [
+        "XX2982",
+        "ACCOUNT"
+      ],
+      [
+        "Harish N",
+        "PAYEE"
+      ]
+    ]
+  },
+  {
+    "bank": "KOTAK",
+    "text": "Sent Rs.15.00 from Kotak Bank AC X7220 to hp petrol pumpqr288005050101t74afkchmxjd@paytm on 14-10-25.UPI Ref 5301120394. Not you, https://kotak.com/6hThWJ/4GW5Z",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "hp petrol pump",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "15.00",
+        "AMOUNT"
+      ],
+      [
+        "X7220",
+        "ACCOUNT"
+      ],
+      [
+        "hp petrol pumpqr288005050101t74afkchmxjd@paytm",
+        "PAYEE"
+      ],
+      [
+        "14-10-25",
+        "DATE"
+      ],
+      [
+        "5301120394",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "KOTAK",
+    "text": "Sent Rs.100.00 from Kotak Bank AC X4685 to ola cabsqr123456789xyz@ybl on 15-10-25.UPI Ref 0569177258. Not you, https://kotak.com/WjQ8dr/XbUu9",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "ola cabs",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "100.00",
+        "AMOUNT"
+      ],
+      [
+        "X4685",
+        "ACCOUNT"
+      ],
+      [
+        "ola cabsqr123456789xyz@ybl",
+        "PAYEE"
+      ],
+      [
+        "15-10-25",
+        "DATE"
+      ],
+      [
+        "0569177258",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "KOTAK",
+    "text": "Received Rs.250.00 in your Kotak Bank AC X1758 from priya92@oksbi on 14-10-25.UPI Ref 2620651632. Not you, https://kotak.com/GBsyRA/2FfXA",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "X1758",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "250.00",
+        "AMOUNT"
+      ],
+      [
+        "priya92@oksbi",
+        "PAYEE"
+      ],
+      [
+        "14-10-25",
+        "DATE"
+      ],
+      [
+        "2620651632",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "KOTAK",
+    "text": "Received Rs. 329.00 on 15-04-26 in your Kotak Bank A/C x5992 by an A/C linked to mobile swiggy. IMPS Ref no 969633020108.",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "swiggy",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "329.00",
+        "AMOUNT"
+      ],
+      [
+        "15-04-26",
+        "DATE"
+      ],
+      [
+        "x5992",
+        "ACCOUNT"
+      ],
+      [
+        "mobile swiggy",
+        "PAYEE"
+      ],
+      [
+        "969633020108",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "NSDL",
+    "text": "A/c XX5075 debited Rs 1.00 on 20-Jun-26 for linked q123456789@oksbi. UPI Ref 414342170441 - NSDLPB",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "q123456789@oksbi",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XX5075",
+        "ACCOUNT"
+      ],
+      [
+        "1.00",
+        "AMOUNT"
+      ],
+      [
+        "20-Jun-26",
+        "DATE"
+      ],
+      [
+        "414342170441",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "NSDL",
+    "text": "A/c XX5447 debited Rs 50.00 on 20-Jun-26 for linked pooja.g@oksbi. UPI Ref 325495336306 - NSDLPB",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "pooja.g@oksbi",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "XX5447",
+        "ACCOUNT"
+      ],
+      [
+        "50.00",
+        "AMOUNT"
+      ],
+      [
+        "20-Jun-26",
+        "DATE"
+      ],
+      [
+        "325495336306",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "PNB",
+    "text": "A/c X3498 credited for INR 125.00 on 01-01-2026 by Kavya Menon thru UPI.Avl INR 9000.00(UPI:166591719646).-PNB",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "9000.00",
+        "BALANCE"
+      ]
+    ],
+    "pred": [
+      [
+        "X3498",
+        "ACCOUNT"
+      ],
+      [
+        "125.00",
+        "AMOUNT"
+      ],
+      [
+        "01-01-2026",
+        "DATE"
+      ],
+      [
+        "Kavya Menon",
+        "PAYEE"
+      ],
+      [
+        "9000.00",
+        "REF_NO"
+      ],
+      [
+        "166591719646",
+        "REF_NO"
+      ]
+    ]
+  },
+  {
+    "bank": "PSB",
+    "text": "PSB630650025983512\nA/C No **6310 Credited with Rs 500--NEFT/AXPS522367164634/ANKIT SHARMA (CLR BAL 1800.63CR)(19-03-2026 06:51:51) Punjab&Sind Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "AXPS522367164634",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "**6310",
+        "ACCOUNT"
+      ],
+      [
+        "500",
+        "AMOUNT"
+      ],
+      [
+        "ANKIT SHARMA",
+        "PAYEE"
+      ],
+      [
+        "1800.63",
+        "BALANCE"
+      ],
+      [
+        "19-03-2026",
+        "DATE"
+      ],
+      [
+        "06:51:51",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "PSB",
+    "text": "PSB829248346820420\nA/c No **6597 Credited with Rs 700--Credit of 284591 (CLR BAL 11064.24CR)(13-04-2026 19:16:15)-Punjab&Sind Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "284591",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "**6597",
+        "ACCOUNT"
+      ],
+      [
+        "700",
+        "AMOUNT"
+      ],
+      [
+        "11064.24",
+        "BALANCE"
+      ],
+      [
+        "13-04-2026",
+        "DATE"
+      ],
+      [
+        "19:16:15",
+        "TIME"
+      ]
+    ]
+  },
+  {
+    "bank": "RBL",
+    "text": "INR958.54 spent at ANKIT SHARMA on RBL Bank credit card (3348) on 12-09-2026.AVL limit- INR67,310.12. Not you? Call 06628521009",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "3348",
+        "ACCOUNT"
+      ]
+    ],
+    "pred": [
+      [
+        "958.54",
+        "AMOUNT"
+      ],
+      [
+        "ANKIT SHARMA",
+        "PAYEE"
+      ],
+      [
+        "(3348",
+        "ACCOUNT"
+      ],
+      [
+        "12-09-2026",
+        "DATE"
+      ],
+      [
+        "67,310.12",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "SBICARD",
+    "text": "Rs.259.00 spent on your SBI Credit Card ending with 6958 on 15Jan26. Your available limit is Rs.1,235.00. If not done by you, call 39 02 02 02.",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "1,235.00",
+        "AVAIL_LIMIT"
+      ]
+    ],
+    "pred": [
+      [
+        "259.00",
+        "AMOUNT"
+      ],
+      [
+        "6958",
+        "ACCOUNT"
+      ],
+      [
+        "15Jan26",
+        "DATE"
+      ]
+    ]
+  },
+  {
+    "bank": "SIB",
+    "text": "A/c X7743 DEBIT:Rs.983.75 KAVYA MENON Bal:Rs.1234.67 Block A/c? call 58903966653/SMS BLK<full A/c>to 8953943506-South Indian Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "KAVYA MENON",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "X7743",
+        "ACCOUNT"
+      ],
+      [
+        "983.75",
+        "AMOUNT"
+      ],
+      [
+        "1234.67",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "SIB",
+    "text": "UPI Credit:INR Rs.15000.00 in A/c X5958. Info: UPI/TGRB/149685246245/ Myntra on 26-12-25 19:02:01.Final balance is Rs.34567.67 -South Indian Bank",
+    "gold_type": "CREDIT",
+    "pred_type": "CREDIT",
+    "missed": [
+      [
+        "149685246245",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "15000.00",
+        "AMOUNT"
+      ],
+      [
+        "X5958",
+        "ACCOUNT"
+      ],
+      [
+        "Myntra",
+        "PAYEE"
+      ],
+      [
+        "26-12-25",
+        "DATE"
+      ],
+      [
+        "19:02:01",
+        "TIME"
+      ],
+      [
+        "34567.67",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "SIB",
+    "text": "UPI debit:INR Rs.250.50 in A/c X5078. Info:UPI/ICIC/320189147783/Priya Nair on 26-12-25 19:05:01. Final balance is Rs.34317.17 -South Indian Bank",
+    "gold_type": "DEBIT",
+    "pred_type": "DEBIT",
+    "missed": [
+      [
+        "320189147783",
+        "REF_NO"
+      ]
+    ],
+    "pred": [
+      [
+        "250.50",
+        "AMOUNT"
+      ],
+      [
+        "X5078",
+        "ACCOUNT"
+      ],
+      [
+        "Priya Nair",
+        "PAYEE"
+      ],
+      [
+        "26-12-25",
+        "DATE"
+      ],
+      [
+        "19:05:01",
+        "TIME"
+      ],
+      [
+        "34317.17",
+        "BALANCE"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "Your slice credit card transaction of RS. 50000 on hp petrol pump is successful. If not you, call 76120645889 - slice",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "hp petrol pump",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "50000",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "SLICE",
+    "text": "Your slice credit card transaction of RS. 1234.56 on amazon pay is successful.",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "amazon pay",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "1234.56",
+        "AMOUNT"
+      ]
+    ]
+  },
+  {
+    "bank": "YES",
+    "text": "INR 404.36 spent on YES BANK Card X4140 @UPI_ROHAN DAS 24-08-2025 06:17:25 pm. Avl Lmt INR 211,476.24. SMS BLKCC 3349 to 0253751631 if not you",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "ROHAN DAS",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "404.36",
+        "AMOUNT"
+      ],
+      [
+        "X4140",
+        "ACCOUNT"
+      ],
+      [
+        "24-08-2025",
+        "DATE"
+      ],
+      [
+        "06:17:25",
+        "TIME"
+      ],
+      [
+        "211,476.24",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "YES",
+    "text": "INR 56.00 spent on YES BANK Card X0618 @UPI_ISHA MALHOTRA 24-08-2025 06:03:40 am. Avl Lmt INR 211,880.60. SMS BLKCC 3349 to 3250872855 if not you",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "ISHA MALHOTRA",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "56.00",
+        "AMOUNT"
+      ],
+      [
+        "X0618",
+        "ACCOUNT"
+      ],
+      [
+        "24-08-2025",
+        "DATE"
+      ],
+      [
+        "06:03:40",
+        "TIME"
+      ],
+      [
+        "211,880.60",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "YES",
+    "text": "INR 24.00 spent on YES BANK Card X6350 @UPI_ARJUN REDDY 23-08-2025 11:51:19 am. Avl Lmt INR 212,012.60. SMS BLKCC 3349 to 0198253457 if not you",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "ARJUN REDDY",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "24.00",
+        "AMOUNT"
+      ],
+      [
+        "X6350",
+        "ACCOUNT"
+      ],
+      [
+        "23-08-2025",
+        "DATE"
+      ],
+      [
+        "11:51:19",
+        "TIME"
+      ],
+      [
+        "212,012.60",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  },
+  {
+    "bank": "YES",
+    "text": "INR 250.00 spent on YES BANK Card X7869 @UPI_PRIYA NAIR 23-08-2025 10:02:59 am. Avl Lmt INR 212,036.60. SMS BLKCC 3349 to 2003407056 if not you",
+    "gold_type": "CARD_SPEND",
+    "pred_type": "CARD_SPEND",
+    "missed": [
+      [
+        "PRIYA NAIR",
+        "PAYEE"
+      ]
+    ],
+    "pred": [
+      [
+        "250.00",
+        "AMOUNT"
+      ],
+      [
+        "X7869",
+        "ACCOUNT"
+      ],
+      [
+        "23-08-2025",
+        "DATE"
+      ],
+      [
+        "10:02:59",
+        "TIME"
+      ],
+      [
+        "212,036.60",
+        "AVAIL_LIMIT"
+      ]
+    ]
+  }
+]

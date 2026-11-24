@@ -36,6 +36,16 @@ class Prefs(context: Context) {
         get() = store.getBoolean(KEY_NOTIFY_ON_RECORD, true)
         set(value) = store.edit().putBoolean(KEY_NOTIFY_ON_RECORD, value).apply()
 
+    /**
+     * When the inbox catch-up last finished. Null until the first scan, which is what
+     * tells the scan to work out its own starting point from the ledger.
+     */
+    var lastCatchUpAt: Long?
+        get() = store.getLong(KEY_LAST_CATCH_UP, -1).takeIf { it >= 0 }
+        set(value) = store.edit().apply {
+            if (value == null) remove(KEY_LAST_CATCH_UP) else putLong(KEY_LAST_CATCH_UP, value)
+        }.apply()
+
     /** Guesses a person looked at and accepted. */
     val guessesConfirmed: Int get() = store.getInt(KEY_CONFIRMED, 0)
 
@@ -55,5 +65,6 @@ class Prefs(context: Context) {
         const val KEY_NOTIFY_ON_RECORD = "notify_on_record"
         const val KEY_CONFIRMED = "guesses_confirmed"
         const val KEY_CORRECTED = "guesses_corrected"
+        const val KEY_LAST_CATCH_UP = "last_catch_up_at"
     }
 }

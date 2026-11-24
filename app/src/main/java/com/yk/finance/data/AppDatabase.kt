@@ -151,6 +151,17 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+/**
+ * Schema 9: catch-up after power saving.
+ *
+ * One new table and nothing else touched. See [SchemaV9].
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        SchemaV9.STATEMENTS.forEach(db::execSQL)
+    }
+}
+
 @Database(
     entities = [
         Account::class, Txn::class, Category::class, CategoryRule::class,
@@ -158,6 +169,7 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         ImportBatch::class, ImportedRow::class, CycleBoundary::class,
         ConfirmedPattern::class, LearnedPattern::class,
         AccountAlias::class, IgnoredAccount::class,
+        SeenMessage::class,
     ],
     version = AppDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -167,7 +179,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): FinanceDao
 
     companion object {
-        const val SCHEMA_VERSION = 8
+        const val SCHEMA_VERSION = 9
         const val DB_NAME = "finance.db"
 
         @Volatile private var instance: AppDatabase? = null
@@ -183,7 +195,7 @@ abstract class AppDatabase : RoomDatabase() {
                 // silently wiping a ledger is the one outcome worse than a crash.
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                 )
                 .build()
         }
